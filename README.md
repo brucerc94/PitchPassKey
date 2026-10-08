@@ -28,7 +28,7 @@ Avoid predictable public melodies for high-value secrets. For critical accounts,
 
 ## Run
 
-Python 3.11+.
+Python 3.10+.
 
 ```bash
 python -m venv .venv
