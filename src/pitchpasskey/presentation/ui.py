@@ -5,7 +5,6 @@ from tkinter import messagebox, ttk
 
 from pitchpasskey.application.capture_sequence import SequenceCapture
 from pitchpasskey.application.password_service import PasswordService
-from pitchpasskey.infrastructure.crypto.password_deriver import PasswordDeriver
 from pitchpasskey.infrastructure.secrets.keyring_secret_store import SecretStoreError
 
 
@@ -17,12 +16,10 @@ class MainWindow:
         root: tk.Tk,
         capture: SequenceCapture,
         password_service: PasswordService,
-        deriver: PasswordDeriver,
     ) -> None:
         self.root = root
         self.capture = capture
         self.password_service = password_service
-        self.deriver = deriver
 
         self._device_var = tk.StringVar()
         self._sequence_var = tk.StringVar(value="—")
@@ -50,10 +47,7 @@ class MainWindow:
         outer.pack(fill="both", expand=True)
 
         ttk.Label(outer, text="PitchPassKey", font=("TkDefaultFont", 20, "bold")).pack(anchor="w")
-        ttk.Label(
-            outer,
-            text="Secuencia MIDI → password",
-        ).pack(anchor="w", pady=(2, 20))
+        ttk.Label(outer, text="Secuencia MIDI → password").pack(anchor="w", pady=(2, 20))
 
         input_frame = ttk.LabelFrame(outer, text="Entrada MIDI", padding=14)
         input_frame.pack(fill="x")
