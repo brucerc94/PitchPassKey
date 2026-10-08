@@ -1,5 +1,5 @@
 @echo off
-setlocal EnableExtensions
+setlocal EnableExtensions EnableDelayedExpansion
 
 title PitchPassKey
 
@@ -60,58 +60,49 @@ if not exist ".venv\Scripts\python.exe" (
 )
 
 set "VENV_PYTHON=%CD%\.venv\Scripts\python.exe"
+set "READY_FILE=%CD%\.venv\.pitchpasskey-ready"
 
 REM ------------------------------------------------------------
-REM 3. Validate the venv interpreter.
+REM 3. Install only when the environment is not ready.
+REM    Use "run.bat --repair" to force a dependency refresh.
 REM ------------------------------------------------------------
-"%VENV_PYTHON%" -c "import sys; raise SystemExit(0 if sys.version_info >= (3,10) else 1)" >nul 2>&1
-if errorlevel 1 (
-    echo [ERROR] El entorno virtual no tiene un Python compatible.
-    echo [INFO] Eliminando .venv para recrearlo...
-    rmdir /s /q ".venv"
-    %PYTHON_CMD% -m venv .venv
+set "NEEDS_INSTALL=0"
+
+if /I "%~1"=="--repair" set "NEEDS_INSTALL=1"
+if not exist "%READY_FILE%" set "NEEDS_INSTALL=1"
+
+if "%NEEDS_INSTALL%"=="0" (
+    "%VENV_PYTHON%" -c "import PySide6, mido, keyring, rtmidi, pitchpasskey" >nul 2>&1
+    if errorlevel 1 set "NEEDS_INSTALL=1"
+)
+
+if "%NEEDS_INSTALL%"=="1" (
+    echo.
+    echo [INFO] Instalando o reparando dependencias del proyecto...
+    "%VENV_PYTHON%" -m pip install -e .
     if errorlevel 1 (
-        echo [ERROR] No se pudo recrear .venv.
+        echo.
+        echo [ERROR] No se pudieron instalar las dependencias de PitchPassKey.
+        echo.
         pause
         exit /b 1
     )
+    >"%READY_FILE%" echo ready
+    echo [OK] Dependencias instaladas.
+) else (
+    echo [OK] Dependencias ya instaladas.
 )
 
 REM ------------------------------------------------------------
-REM 4. Upgrade pip and install everything declared by pyproject.toml.
-REM ------------------------------------------------------------
-echo [INFO] Actualizando pip...
-"%VENV_PYTHON%" -m pip install --upgrade pip
-if errorlevel 1 (
-    echo.
-    echo [ERROR] No se pudo actualizar pip.
-    echo [INFO] Revisa tu conexion a Internet.
-    echo.
-    pause
-    exit /b 1
-)
-
-echo.
-echo [INFO] Verificando e instalando dependencias del proyecto...
-"%VENV_PYTHON%" -m pip install -e .
-if errorlevel 1 (
-    echo.
-    echo [ERROR] No se pudieron instalar las dependencias de PitchPassKey.
-    echo.
-    pause
-    exit /b 1
-)
-
-REM ------------------------------------------------------------
-REM 5. Verify critical runtime imports before starting.
+REM 4. Verify critical runtime imports before starting.
 REM ------------------------------------------------------------
 echo.
 echo [INFO] Verificando componentes principales...
-"%VENV_PYTHON%" -c "from PySide6 import QtWidgets; import mido, keyring, rtmidi"
+"%VENV_PYTHON%" -c "from PySide6 import QtWidgets; import mido, keyring, rtmidi, pitchpasskey"
 if errorlevel 1 (
     echo.
-    echo [ERROR] Falta un componente requerido para ejecutar PitchPassKey.
-    echo [INFO] Ejecuta nuevamente este archivo para intentar reparar la instalacion.
+    echo [ERROR] La instalacion no esta completa.
+    echo [INFO] Ejecuta "run.bat --repair" para repararla.
     echo.
     pause
     exit /b 1
@@ -120,7 +111,7 @@ if errorlevel 1 (
 echo [OK] Dependencias verificadas.
 
 REM ------------------------------------------------------------
-REM 6. Start PitchPassKey with the virtual environment Python.
+REM 5. Start PitchPassKey with the virtual environment Python.
 REM ------------------------------------------------------------
 echo.
 echo [INFO] Iniciando PitchPassKey...
