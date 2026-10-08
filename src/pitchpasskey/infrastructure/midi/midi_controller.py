@@ -9,6 +9,10 @@ from pitchpasskey.domain.models import NoteEvent
 from pitchpasskey.domain.ports import NoteCallback, NoteInputSource
 
 
+class MidiInputError(RuntimeError):
+    """Raised when the MIDI backend cannot provide the requested input."""
+
+
 class MidiControllerInput(NoteInputSource):
     """MIDI controller adapter backed by mido/RTMIDI."""
 
@@ -17,17 +21,26 @@ class MidiControllerInput(NoteInputSource):
         self._lock = Lock()
 
     def list_devices(self) -> list[str]:
-        return list(mido.get_input_names())
+        try:
+            return list(mido.get_input_names())
+        except (OSError, RuntimeError) as exc:
+            raise MidiInputError(f"Could not enumerate MIDI devices: {exc}") from exc
 
     def start(self, device_name: str, callback: NoteCallback) -> None:
         with self._lock:
             if self._port is not None:
-                raise RuntimeError("MIDI input is already running")
+                raise MidiInputError("MIDI input is already running")
 
             if device_name not in self.list_devices():
-                raise ValueError("Selected MIDI device is no longer available")
+                raise MidiInputError("Selected MIDI device is no longer available")
 
-            self._port = mido.open_input(device_name, callback=self._build_callback(callback))
+            try:
+                self._port = mido.open_input(
+                    device_name,
+                    callback=self._build_callback(callback),
+                )
+            except (OSError, RuntimeError) as exc:
+                raise MidiInputError(f"Could not open MIDI device: {exc}") from exc
 
     def stop(self) -> None:
         with self._lock:
@@ -45,8 +58,8 @@ class MidiControllerInput(NoteInputSource):
     @staticmethod
     def _build_callback(callback: NoteCallback):
         def handle(message: Any) -> None:
-            # Only note_on with a positive velocity represents a pressed key.
-            # Velocity itself is never forwarded into the domain.
+            # MIDI note_on with velocity=0 is note_off.
+            # Velocity itself never enters the domain.
             if message.type != "note_on" or getattr(message, "velocity", 0) <= 0:
                 return
             callback(NoteEvent(int(message.note)))
