@@ -28,3 +28,11 @@ class NoteInputSource(ABC):
     @abstractmethod
     def is_running(self) -> bool:
         ...
+
+
+class PasswordDerivationPort(ABC):
+    """Application-facing boundary for deterministic password derivation."""
+
+    @abstractmethod
+    def derive(self, sequence, context: str, length: int) -> str:
+        ...
