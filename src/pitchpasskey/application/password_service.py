@@ -26,7 +26,12 @@ class PasswordService:
         context: str = "",
         length: int | None = None,
     ) -> str:
-        if not self._policy.min_sequence_length <= len(sequence) <= self._policy.max_sequence_length:
+        sequence_length = len(sequence)
+        if not (
+            self._policy.min_sequence_length
+            <= sequence_length
+            <= self._policy.max_sequence_length
+        ):
             raise ValueError(
                 f"sequence must contain {self._policy.min_sequence_length}-"
                 f"{self._policy.max_sequence_length} notes"
