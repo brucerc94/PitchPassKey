@@ -25,7 +25,6 @@ class MainWindow:
         self._device_var = tk.StringVar()
         self._sequence_var = tk.StringVar(value="—")
         self._count_var = tk.StringVar(value="0 notas")
-        self._context_var = tk.StringVar()
         self._password_var = tk.StringVar()
         self._show_password = tk.BooleanVar(value=False)
         self._length_var = tk.IntVar(value=password_service.policy.length)
@@ -37,8 +36,8 @@ class MainWindow:
 
     def _build(self) -> None:
         self.root.title("PitchPassKey")
-        self.root.geometry("720x500")
-        self.root.minsize(620, 440)
+        self.root.geometry("720x460")
+        self.root.minsize(620, 400)
 
         style = ttk.Style(self.root)
         if "clam" in style.theme_names():
@@ -102,19 +101,14 @@ class MainWindow:
         output_frame = ttk.LabelFrame(outer, text="Password", padding=14)
         output_frame.pack(fill="x", pady=(16, 0))
 
-        ttk.Label(output_frame, text="Contexto (opcional)").grid(row=0, column=0, sticky="w")
-        ttk.Entry(output_frame, textvariable=self._context_var).grid(
-            row=0, column=1, sticky="ew", padx=(10, 0)
-        )
-
-        ttk.Label(output_frame, text="Longitud").grid(row=0, column=2, padx=(14, 8))
+        ttk.Label(output_frame, text="Longitud").grid(row=0, column=0, sticky="w")
         ttk.Combobox(
             output_frame,
             textvariable=self._length_var,
             values=(16, 20, 24, 32, 40, 48, 64),
             state="readonly",
             width=6,
-        ).grid(row=0, column=3)
+        ).grid(row=0, column=1, padx=(10, 0))
 
         ttk.Button(output_frame, text="Generar", command=self.generate_password).grid(
             row=1, column=0, sticky="w", pady=(14, 0)
@@ -126,14 +120,14 @@ class MainWindow:
             state="readonly",
             show="•",
         )
-        self.password_entry.grid(row=2, column=0, columnspan=3, sticky="ew", pady=(12, 0))
+        self.password_entry.grid(row=2, column=0, columnspan=2, sticky="ew", pady=(12, 0))
 
         ttk.Checkbutton(
             output_frame,
             text="Mostrar",
             variable=self._show_password,
             command=self.toggle_password_visibility,
-        ).grid(row=2, column=3, padx=(10, 0))
+        ).grid(row=2, column=2, padx=(10, 0))
 
         self.copy_button = ttk.Button(
             output_frame,
@@ -142,7 +136,7 @@ class MainWindow:
             command=self.copy_password,
         )
         self.copy_button.grid(row=3, column=0, sticky="w", pady=(10, 0))
-        output_frame.columnconfigure(1, weight=1)
+        output_frame.columnconfigure(0, weight=1)
 
         ttk.Label(outer, textvariable=self._status_var).pack(anchor="w", pady=(16, 0))
         self.root.protocol("WM_DELETE_WINDOW", self.close)
@@ -193,7 +187,6 @@ class MainWindow:
         try:
             password = self.password_service.generate(
                 self.capture.sequence,
-                self._context_var.get(),
                 int(self._length_var.get()),
             )
             self._password_var.set(password)
