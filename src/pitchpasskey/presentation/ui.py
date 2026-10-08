@@ -140,7 +140,7 @@ class MainWindow(QMainWindow):
         length_label = QLabel("Longitud")
         self.length_combo = QComboBox()
         self.length_combo.addItems(["16", "20", "24", "32", "40", "48", "64"])
-        self.length_combo.setCurrentText(str(password_service.policy.length))
+        self.length_combo.setCurrentText(str(self.password_service.policy.length))
         self.length_combo.setFixedWidth(90)
 
         settings_row.addWidget(length_label)
