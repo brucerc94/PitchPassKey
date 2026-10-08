@@ -18,22 +18,22 @@ set "PYTHON_CMD="
 
 where py >nul 2>&1
 if not errorlevel 1 (
-    py -3 -c "import sys; raise SystemExit(0 if sys.version_info >= (3,11) else 1)" >nul 2>&1
+    py -3 -c "import sys; raise SystemExit(0 if sys.version_info >= (3,10) else 1)" >nul 2>&1
     if not errorlevel 1 set "PYTHON_CMD=py -3"
 )
 
 if not defined PYTHON_CMD (
     where python >nul 2>&1
     if not errorlevel 1 (
-        python -c "import sys; raise SystemExit(0 if sys.version_info >= (3,11) else 1)" >nul 2>&1
+        python -c "import sys; raise SystemExit(0 if sys.version_info >= (3,10) else 1)" >nul 2>&1
         if not errorlevel 1 set "PYTHON_CMD=python"
     )
 )
 
 if not defined PYTHON_CMD (
-    echo [ERROR] Python 3.11 or newer was not found.
+    echo [ERROR] Python 3.10 or newer was not found.
     echo.
-    echo Install Python 3.11+ and run this file again.
+    echo Install Python 3.10+ and run this file again.
     echo.
     pause
     exit /b 1
@@ -64,7 +64,7 @@ set "VENV_PYTHON=%CD%\.venv\Scripts\python.exe"
 REM ------------------------------------------------------------
 REM 3. Validate the venv interpreter.
 REM ------------------------------------------------------------
-"%VENV_PYTHON%" -c "import sys; raise SystemExit(0 if sys.version_info >= (3,11) else 1)" >nul 2>&1
+"%VENV_PYTHON%" -c "import sys; raise SystemExit(0 if sys.version_info >= (3,10) else 1)" >nul 2>&1
 if errorlevel 1 (
     echo [ERROR] El entorno virtual no tiene un Python compatible.
     echo [INFO] Eliminando .venv para recrearlo...
