@@ -3,7 +3,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from collections.abc import Callable
 
-from .models import NoteEvent, NoteSequence
+from pitchpasskey.domain.models import NoteEvent, NoteSequence
 
 
 NoteCallback = Callable[[NoteEvent], None]
