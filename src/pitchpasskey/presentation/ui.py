@@ -1,7 +1,22 @@
 from __future__ import annotations
 
-import tkinter as tk
-from tkinter import messagebox, ttk
+from PySide6.QtCore import QTimer, Qt
+from PySide6.QtGui import QFont
+from PySide6.QtWidgets import (
+    QCheckBox,
+    QComboBox,
+    QFormLayout,
+    QFrame,
+    QGroupBox,
+    QHBoxLayout,
+    QLabel,
+    QLineEdit,
+    QMainWindow,
+    QMessageBox,
+    QPushButton,
+    QVBoxLayout,
+    QWidget,
+)
 
 from pitchpasskey.application.capture_sequence import SequenceCapture
 from pitchpasskey.application.password_service import PasswordService
@@ -9,137 +24,282 @@ from pitchpasskey.infrastructure.midi.midi_controller import MidiInputError
 from pitchpasskey.infrastructure.secrets.keyring_secret_store import SecretStoreError
 
 
-class MainWindow:
-    """Minimal desktop presentation layer."""
+class MainWindow(QMainWindow):
+    """Professional desktop presentation layer built with Qt."""
 
     def __init__(
         self,
-        root: tk.Tk,
         capture: SequenceCapture,
         password_service: PasswordService,
     ) -> None:
-        self.root = root
+        super().__init__()
+
         self.capture = capture
         self.password_service = password_service
 
-        self._device_var = tk.StringVar()
-        self._sequence_var = tk.StringVar(value="—")
-        self._count_var = tk.StringVar(value="0 notas")
-        self._password_var = tk.StringVar()
-        self._show_password = tk.BooleanVar(value=False)
-        self._length_var = tk.IntVar(value=password_service.policy.length)
-        self._status_var = tk.StringVar(value="Listo")
+        self._last_sequence: tuple[int, ...] = ()
+        self._password_visible = False
 
         self._build()
         self.refresh_devices()
-        self._schedule_sequence_refresh()
+
+        self._refresh_timer = QTimer(self)
+        self._refresh_timer.setInterval(100)
+        self._refresh_timer.timeout.connect(self._refresh_sequence)
+        self._refresh_timer.start()
 
     def _build(self) -> None:
-        self.root.title("PitchPassKey")
-        self.root.geometry("720x460")
-        self.root.minsize(620, 400)
+        self.setWindowTitle("PitchPassKey")
+        self.setMinimumSize(720, 560)
+        self.resize(800, 620)
 
-        style = ttk.Style(self.root)
-        if "clam" in style.theme_names():
-            style.theme_use("clam")
+        root = QWidget()
+        self.setCentralWidget(root)
 
-        outer = ttk.Frame(self.root, padding=24)
-        outer.pack(fill="both", expand=True)
+        outer = QVBoxLayout(root)
+        outer.setContentsMargins(32, 28, 32, 28)
+        outer.setSpacing(18)
 
-        ttk.Label(outer, text="PitchPassKey", font=("TkDefaultFont", 20, "bold")).pack(anchor="w")
-        ttk.Label(outer, text="Secuencia MIDI → password").pack(anchor="w", pady=(2, 20))
+        title = QLabel("PitchPassKey")
+        title.setObjectName("title")
+        outer.addWidget(title)
 
-        input_frame = ttk.LabelFrame(outer, text="Entrada MIDI", padding=14)
-        input_frame.pack(fill="x")
+        subtitle = QLabel("Genera una contraseña a partir de una secuencia musical.")
+        subtitle.setObjectName("subtitle")
+        outer.addWidget(subtitle)
 
-        ttk.Label(input_frame, text="Dispositivo").grid(row=0, column=0, sticky="w")
-        self.device_combo = ttk.Combobox(
-            input_frame,
-            textvariable=self._device_var,
-            state="readonly",
-            width=42,
+        input_group = QGroupBox("Entrada MIDI")
+        input_layout = QFormLayout(input_group)
+        input_layout.setContentsMargins(18, 20, 18, 18)
+        input_layout.setHorizontalSpacing(16)
+        input_layout.setVerticalSpacing(12)
+
+        device_row = QHBoxLayout()
+        self.device_combo = QComboBox()
+        self.device_combo.setMinimumWidth(360)
+
+        refresh_button = QPushButton("Actualizar")
+        refresh_button.setObjectName("secondaryButton")
+        refresh_button.clicked.connect(self.refresh_devices)
+
+        device_row.addWidget(self.device_combo, 1)
+        device_row.addWidget(refresh_button)
+        input_layout.addRow("Dispositivo", device_row)
+
+        capture_row = QHBoxLayout()
+
+        self.record_button = QPushButton("Iniciar captura")
+        self.record_button.setObjectName("primaryButton")
+        self.record_button.clicked.connect(self.toggle_capture)
+
+        clear_button = QPushButton("Limpiar")
+        clear_button.setObjectName("secondaryButton")
+        clear_button.clicked.connect(self.clear_sequence)
+
+        capture_row.addWidget(self.record_button)
+        capture_row.addWidget(clear_button)
+        capture_row.addStretch(1)
+
+        input_layout.addRow("", capture_row)
+
+        hint = QLabel("Solo se consideran la nota y su orden. Velocidad, timing y duración no se utilizan.")
+        hint.setObjectName("hint")
+        hint.setWordWrap(True)
+        input_layout.addRow("", hint)
+
+        outer.addWidget(input_group)
+
+        sequence_group = QGroupBox("Secuencia capturada")
+        sequence_layout = QVBoxLayout(sequence_group)
+        sequence_layout.setContentsMargins(18, 20, 18, 18)
+        sequence_layout.setSpacing(10)
+
+        self.sequence_display = QLineEdit()
+        self.sequence_display.setReadOnly(True)
+        self.sequence_display.setPlaceholderText("Toca las notas en tu controlador MIDI.")
+        self.sequence_display.setMinimumHeight(40)
+
+        sequence_font = QFont("Consolas")
+        sequence_font.setPointSize(10)
+        self.sequence_display.setFont(sequence_font)
+
+        self.count_label = QLabel("0 notas")
+        self.count_label.setObjectName("hint")
+
+        sequence_layout.addWidget(self.sequence_display)
+        sequence_layout.addWidget(self.count_label)
+
+        outer.addWidget(sequence_group)
+
+        password_group = QGroupBox("Contraseña")
+        password_layout = QVBoxLayout(password_group)
+        password_layout.setContentsMargins(18, 20, 18, 18)
+        password_layout.setSpacing(12)
+
+        settings_row = QHBoxLayout()
+
+        length_label = QLabel("Longitud")
+        self.length_combo = QComboBox()
+        self.length_combo.addItems(["16", "20", "24", "32", "40", "48", "64"])
+        self.length_combo.setCurrentText(str(password_service.policy.length))
+        self.length_combo.setFixedWidth(90)
+
+        settings_row.addWidget(length_label)
+        settings_row.addWidget(self.length_combo)
+        settings_row.addStretch(1)
+
+        self.generate_button = QPushButton("Generar contraseña")
+        self.generate_button.setObjectName("primaryButton")
+        self.generate_button.clicked.connect(self.generate_password)
+        settings_row.addWidget(self.generate_button)
+
+        password_layout.addLayout(settings_row)
+
+        password_row = QHBoxLayout()
+
+        self.password_entry = QLineEdit()
+        self.password_entry.setReadOnly(True)
+        self.password_entry.setPlaceholderText("La contraseña aparecerá aquí.")
+        self.password_entry.setEchoMode(QLineEdit.EchoMode.Password)
+        self.password_entry.setMinimumHeight(40)
+
+        self.show_checkbox = QCheckBox("Mostrar")
+        self.show_checkbox.stateChanged.connect(self.toggle_password_visibility)
+
+        self.copy_button = QPushButton("Copiar")
+        self.copy_button.setObjectName("secondaryButton")
+        self.copy_button.setEnabled(False)
+        self.copy_button.clicked.connect(self.copy_password)
+
+        password_row.addWidget(self.password_entry, 1)
+        password_row.addWidget(self.show_checkbox)
+        password_row.addWidget(self.copy_button)
+
+        password_layout.addLayout(password_row)
+
+        security_hint = QLabel("La contraseña se mantiene en memoria y se muestra oculta por defecto.")
+        security_hint.setObjectName("hint")
+        security_hint.setWordWrap(True)
+        password_layout.addWidget(security_hint)
+
+        outer.addWidget(password_group)
+        outer.addStretch(1)
+
+        separator = QFrame()
+        separator.setFrameShape(QFrame.Shape.HLine)
+        separator.setObjectName("separator")
+        outer.addWidget(separator)
+
+        self.status_label = QLabel("Listo")
+        self.status_label.setObjectName("status")
+        outer.addWidget(self.status_label)
+
+        self._apply_style()
+
+    def _apply_style(self) -> None:
+        self.setStyleSheet(
+            """
+            QMainWindow {
+                background: #f5f7fa;
+            }
+
+            QLabel#title {
+                font-size: 28px;
+                font-weight: 700;
+                color: #16202a;
+            }
+
+            QLabel#subtitle {
+                font-size: 13px;
+                color: #617080;
+                margin-bottom: 4px;
+            }
+
+            QGroupBox {
+                background: #ffffff;
+                border: 1px solid #d9e0e7;
+                border-radius: 10px;
+                margin-top: 10px;
+                padding-top: 8px;
+                font-size: 13px;
+                font-weight: 600;
+                color: #263442;
+            }
+
+            QGroupBox::title {
+                subcontrol-origin: margin;
+                left: 14px;
+                padding: 0 6px;
+                background: #f5f7fa;
+            }
+
+            QComboBox,
+            QLineEdit {
+                background: #ffffff;
+                border: 1px solid #c8d0d8;
+                border-radius: 7px;
+                padding: 7px 10px;
+                color: #1f2933;
+            }
+
+            QComboBox:focus,
+            QLineEdit:focus {
+                border: 1px solid #5b8def;
+            }
+
+            QPushButton {
+                min-height: 36px;
+                padding: 0 14px;
+                border-radius: 7px;
+                border: 1px solid #c8d0d8;
+                background: #ffffff;
+                color: #263442;
+                font-weight: 600;
+            }
+
+            QPushButton:hover {
+                background: #f0f3f7;
+            }
+
+            QPushButton:disabled {
+                color: #9aa5b1;
+                background: #eef1f4;
+            }
+
+            QPushButton#primaryButton {
+                border: 1px solid #285ccf;
+                background: #326fe6;
+                color: #ffffff;
+            }
+
+            QPushButton#primaryButton:hover {
+                background: #2b63cf;
+            }
+
+            QPushButton#secondaryButton {
+                background: #ffffff;
+            }
+
+            QLabel#hint {
+                color: #71808f;
+                font-size: 11px;
+            }
+
+            QLabel#status {
+                color: #566574;
+                font-size: 11px;
+            }
+
+            QFrame#separator {
+                color: #d9e0e7;
+            }
+
+            QCheckBox {
+                color: #566574;
+                spacing: 6px;
+            }
+            """
         )
-        self.device_combo.grid(row=0, column=1, sticky="ew", padx=(12, 0))
-
-        ttk.Button(input_frame, text="Actualizar", command=self.refresh_devices).grid(
-            row=0, column=2, padx=(10, 0)
-        )
-
-        self.record_button = ttk.Button(
-            input_frame,
-            text="Iniciar captura",
-            command=self.toggle_capture,
-        )
-        self.record_button.grid(row=1, column=1, sticky="w", pady=(14, 0))
-
-        ttk.Label(
-            input_frame,
-            text="Solo cuenta la tecla y su orden. Velocity, timing y duración se ignoran.",
-            foreground="#666666",
-        ).grid(row=2, column=1, sticky="w", pady=(10, 0))
-
-        ttk.Label(
-            input_frame,
-            text="Audio: preparado como fuente futura de notas.",
-            foreground="#666666",
-        ).grid(row=3, column=1, sticky="w", pady=(5, 0))
-        input_frame.columnconfigure(1, weight=1)
-
-        sequence_frame = ttk.LabelFrame(outer, text="Secuencia capturada", padding=14)
-        sequence_frame.pack(fill="x", pady=(16, 0))
-
-        ttk.Label(
-            sequence_frame,
-            textvariable=self._sequence_var,
-            font=("TkFixedFont", 12),
-        ).pack(anchor="w")
-        ttk.Label(sequence_frame, textvariable=self._count_var).pack(anchor="w", pady=(6, 0))
-        ttk.Button(sequence_frame, text="Limpiar", command=self.clear_sequence).pack(
-            anchor="w", pady=(12, 0)
-        )
-
-        output_frame = ttk.LabelFrame(outer, text="Password", padding=14)
-        output_frame.pack(fill="x", pady=(16, 0))
-
-        ttk.Label(output_frame, text="Longitud").grid(row=0, column=0, sticky="w")
-        ttk.Combobox(
-            output_frame,
-            textvariable=self._length_var,
-            values=(16, 20, 24, 32, 40, 48, 64),
-            state="readonly",
-            width=6,
-        ).grid(row=0, column=1, padx=(10, 0))
-
-        ttk.Button(output_frame, text="Generar", command=self.generate_password).grid(
-            row=1, column=0, sticky="w", pady=(14, 0)
-        )
-
-        self.password_entry = ttk.Entry(
-            output_frame,
-            textvariable=self._password_var,
-            state="readonly",
-            show="•",
-        )
-        self.password_entry.grid(row=2, column=0, columnspan=2, sticky="ew", pady=(12, 0))
-
-        ttk.Checkbutton(
-            output_frame,
-            text="Mostrar",
-            variable=self._show_password,
-            command=self.toggle_password_visibility,
-        ).grid(row=2, column=2, padx=(10, 0))
-
-        self.copy_button = ttk.Button(
-            output_frame,
-            text="Copiar",
-            state="disabled",
-            command=self.copy_password,
-        )
-        self.copy_button.grid(row=3, column=0, sticky="w", pady=(10, 0))
-        output_frame.columnconfigure(0, weight=1)
-
-        ttk.Label(outer, textvariable=self._status_var).pack(anchor="w", pady=(16, 0))
-        self.root.protocol("WM_DELETE_WINDOW", self.close)
 
     def refresh_devices(self) -> None:
         try:
@@ -148,77 +308,88 @@ class MainWindow:
             self._set_status(f"No se pudieron leer los dispositivos MIDI: {exc}")
             return
 
-        self.device_combo["values"] = devices
+        self.device_combo.clear()
+        self.device_combo.addItems(devices)
+
         if devices:
-            if self._device_var.get() not in devices:
-                self._device_var.set(devices[0])
             self._set_status(f"{len(devices)} dispositivo(s) MIDI disponible(s).")
         else:
-            self._device_var.set("")
             self._set_status("No se detectó un dispositivo MIDI.")
 
     def toggle_capture(self) -> None:
         if self.capture.is_running:
             self.capture.stop()
-            self.record_button.configure(text="Iniciar captura")
+            self.record_button.setText("Iniciar captura")
             self._set_status("Captura detenida.")
             return
 
-        device = self._device_var.get().strip()
+        device = self.device_combo.currentText().strip()
         if not device:
-            messagebox.showwarning("MIDI", "Selecciona un dispositivo MIDI.")
+            QMessageBox.warning(self, "MIDI", "Selecciona un dispositivo MIDI.")
             return
 
         try:
             self.capture.start(device)
-            self.record_button.configure(text="Detener captura")
-            self._set_status("Capturando…")
+            self.record_button.setText("Detener captura")
+            self._set_status("Capturando notas…")
         except MidiInputError as exc:
-            messagebox.showerror("MIDI", str(exc))
+            QMessageBox.critical(self, "MIDI", str(exc))
             self._set_status("Error de captura.")
 
     def clear_sequence(self) -> None:
         self.capture.clear()
-        self._password_var.set("")
-        self.copy_button.configure(state="disabled")
+        self._last_sequence = ()
+        self._clear_password()
         self._set_status("Secuencia limpiada.")
 
     def generate_password(self) -> None:
         try:
-            password = self.password_service.generate(
-                self.capture.sequence,
-                int(self._length_var.get()),
-            )
-            self._password_var.set(password)
-            self.copy_button.configure(state="normal")
-            self._set_status("Password generado y mantenido solo en memoria.")
+            length = int(self.length_combo.currentText())
+            password = self.password_service.generate(self.capture.sequence, length)
+
+            self.password_entry.setText(password)
+            self.copy_button.setEnabled(True)
+            self._set_status("Contraseña generada y mantenida solo en memoria.")
         except (ValueError, SecretStoreError) as exc:
-            messagebox.showwarning("No se pudo generar", str(exc))
+            QMessageBox.warning(self, "No se pudo generar", str(exc))
 
     def toggle_password_visibility(self) -> None:
-        self.password_entry.configure(show="" if self._show_password.get() else "•")
+        self._password_visible = self.show_checkbox.isChecked()
+        mode = QLineEdit.EchoMode.Normal if self._password_visible else QLineEdit.EchoMode.Password
+        self.password_entry.setEchoMode(mode)
 
     def copy_password(self) -> None:
-        value = self._password_var.get()
+        value = self.password_entry.text()
         if not value:
             return
-        self.root.clipboard_clear()
-        self.root.clipboard_append(value)
-        self.root.update()
-        self._set_status("Password copiado al portapapeles. Límpialo al terminar.")
 
-    def _schedule_sequence_refresh(self) -> None:
+        clipboard = self.window().windowHandle().screen().handle()
+        del clipboard
+
+        self.password_entry.selectAll()
+        self.password_entry.copy()
+        self.password_entry.deselect()
+        self._set_status("Contraseña copiada al portapapeles. Límpialo al terminar.")
+
+    def _refresh_sequence(self) -> None:
         sequence = self.capture.sequence
-        names = sequence.display_names()
-        self._sequence_var.set(" → ".join(names[-24:]) if names else "—")
-        suffix = "…" if len(names) > 24 else ""
-        self._count_var.set(f"{len(names)} notas{suffix}")
-        if self.root.winfo_exists():
-            self.root.after(100, self._schedule_sequence_refresh)
+        if sequence.notes != self._last_sequence:
+            self._last_sequence = sequence.notes
+
+            names = sequence.display_names()
+            self.sequence_display.setText(" → ".join(names[-24:]) if names else "")
+            suffix = "…" if len(names) > 24 else ""
+            self.count_label.setText(f"{len(names)} notas{suffix}")
+            self._clear_password()
+
+    def _clear_password(self) -> None:
+        self.password_entry.clear()
+        self.copy_button.setEnabled(False)
 
     def _set_status(self, value: str) -> None:
-        self._status_var.set(value)
+        self.status_label.setText(value)
 
-    def close(self) -> None:
+    def closeEvent(self, event) -> None:
+        self._refresh_timer.stop()
         self.capture.stop()
-        self.root.destroy()
+        event.accept()
