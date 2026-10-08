@@ -3,7 +3,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from collections.abc import Callable
 
-from .models import NoteEvent
+from .models import NoteEvent, NoteSequence
 
 
 NoteCallback = Callable[[NoteEvent], None]
@@ -34,5 +34,5 @@ class PasswordDerivationPort(ABC):
     """Application-facing boundary for deterministic password derivation."""
 
     @abstractmethod
-    def derive(self, sequence, context: str, length: int) -> str:
+    def derive(self, sequence: NoteSequence, context: str, length: int) -> str:
         ...
