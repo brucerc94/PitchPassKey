@@ -12,8 +12,7 @@ from pitchpasskey.domain.ports import PasswordDerivationPort
 class SecretProvider(Protocol):
     """Infrastructure boundary for OS-backed secret stores."""
 
-    def get_or_create(self, profile: str) -> bytes:
-        ...
+    def get_or_create(self, profile: str) -> bytes: ...
 
 
 class PasswordDeriver(PasswordDerivationPort):
