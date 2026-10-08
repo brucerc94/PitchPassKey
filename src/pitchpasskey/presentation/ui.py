@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 from PySide6.QtCore import QTimer, Qt
-from PySide6.QtGui import QFont
+from PySide6.QtGui import QFont, QIcon
 from PySide6.QtWidgets import (
     QApplication,
     QCheckBox,
@@ -62,10 +64,15 @@ class MainWindow(QMainWindow):
         header = QHBoxLayout()
         header.setSpacing(14)
 
-        mark = QLabel("P")
-        mark.setObjectName("brandMark")
-        mark.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        mark.setFixedSize(44, 44)
+        logo_label = QLabel()
+        logo_label.setObjectName("brandLogo")
+        logo_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        logo_label.setFixedSize(70, 70)
+
+        icon_path = Path(__file__).resolve().parents[3] / "assets" / "pitchpasskey.svg"
+        icon = QIcon(str(icon_path))
+        if not icon.isNull():
+            logo_label.setPixmap(icon.pixmap(64, 64))
 
         title_box = QVBoxLayout()
         title_box.setSpacing(1)
@@ -73,8 +80,9 @@ class MainWindow(QMainWindow):
         title = QLabel("PitchPassKey")
         title.setObjectName("title")
 
-        subtitle = QLabel("Genera contraseñas deterministas a partir de una secuencia musical.")
+        subtitle = QLabel("Deterministic password generation from a musical sequence.")
         subtitle.setObjectName("subtitle")
+        subtitle.setWordWrap(True)
 
         title_box.addWidget(title)
         title_box.addWidget(subtitle)
@@ -84,8 +92,8 @@ class MainWindow(QMainWindow):
         local_badge.setAlignment(Qt.AlignmentFlag.AlignCenter)
         local_badge.setFixedWidth(62)
 
-        header.addWidget(mark)
-        header.addLayout(title_box)
+        header.addWidget(logo_label)
+        header.addLayout(title_box, 1)
         header.addStretch(1)
         header.addWidget(local_badge, 0, Qt.AlignmentFlag.AlignTop)
 
@@ -94,12 +102,12 @@ class MainWindow(QMainWindow):
         content = QHBoxLayout()
         content.setSpacing(18)
 
-        input_group = QGroupBox("1  ·  ENTRADA")
+        input_group = QGroupBox("1  ·  INPUT")
         input_layout = QVBoxLayout(input_group)
         input_layout.setContentsMargins(18, 20, 18, 18)
         input_layout.setSpacing(14)
 
-        device_label = QLabel("Dispositivo MIDI")
+        device_label = QLabel("MIDI device")
         device_label.setObjectName("fieldLabel")
 
         device_row = QHBoxLayout()
@@ -108,7 +116,7 @@ class MainWindow(QMainWindow):
         self.device_combo = QComboBox()
         self.device_combo.setMinimumHeight(40)
 
-        refresh_button = QPushButton("Actualizar")
+        refresh_button = QPushButton("Refresh")
         refresh_button.setObjectName("secondaryButton")
         refresh_button.setMinimumHeight(40)
         refresh_button.clicked.connect(self.refresh_devices)
@@ -116,17 +124,17 @@ class MainWindow(QMainWindow):
         device_row.addWidget(self.device_combo, 1)
         device_row.addWidget(refresh_button)
 
-        self.record_button = QPushButton("Iniciar captura")
+        self.record_button = QPushButton("Start capture")
         self.record_button.setObjectName("primaryButton")
         self.record_button.setMinimumHeight(42)
         self.record_button.clicked.connect(self.toggle_capture)
 
-        clear_button = QPushButton("Limpiar secuencia")
+        clear_button = QPushButton("Clear sequence")
         clear_button.setObjectName("secondaryButton")
         clear_button.setMinimumHeight(38)
         clear_button.clicked.connect(self.clear_sequence)
 
-        helper = QLabel("Solo se consideran la nota y su orden.")
+        helper = QLabel("Only the note and its order are used.")
         helper.setObjectName("hint")
         helper.setWordWrap(True)
 
@@ -137,12 +145,12 @@ class MainWindow(QMainWindow):
         input_layout.addStretch(1)
         input_layout.addWidget(helper)
 
-        sequence_group = QGroupBox("2  ·  SECUENCIA")
+        sequence_group = QGroupBox("2  ·  SEQUENCE")
         sequence_layout = QVBoxLayout(sequence_group)
         sequence_layout.setContentsMargins(18, 20, 18, 18)
         sequence_layout.setSpacing(10)
 
-        sequence_hint = QLabel("Notas capturadas en orden")
+        sequence_hint = QLabel("Captured notes in order")
         sequence_hint.setObjectName("fieldLabel")
 
         self.sequence_display = QLineEdit()
@@ -154,7 +162,7 @@ class MainWindow(QMainWindow):
         sequence_font.setPointSize(10)
         self.sequence_display.setFont(sequence_font)
 
-        self.count_label = QLabel("0 notas")
+        self.count_label = QLabel("0 notes")
         self.count_label.setObjectName("hint")
 
         sequence_layout.addWidget(sequence_hint)
@@ -166,7 +174,7 @@ class MainWindow(QMainWindow):
         left_column.addWidget(input_group)
         left_column.addWidget(sequence_group, 1)
 
-        password_group = QGroupBox("3  ·  CONTRASEÑA")
+        password_group = QGroupBox("3  ·  PASSWORD")
         password_layout = QVBoxLayout(password_group)
         password_layout.setContentsMargins(18, 20, 18, 18)
         password_layout.setSpacing(14)
@@ -181,9 +189,9 @@ class MainWindow(QMainWindow):
         self.length_combo.setFixedWidth(92)
         self.length_combo.setMinimumHeight(40)
 
-        settings.addRow("Longitud", self.length_combo)
+        settings.addRow("Length", self.length_combo)
 
-        self.generate_button = QPushButton("Generar contraseña")
+        self.generate_button = QPushButton("Generate password")
         self.generate_button.setObjectName("primaryButton")
         self.generate_button.setMinimumHeight(46)
         self.generate_button.clicked.connect(self.generate_password)
@@ -191,12 +199,12 @@ class MainWindow(QMainWindow):
         password_layout.addLayout(settings)
         password_layout.addWidget(self.generate_button)
 
-        password_label = QLabel("Resultado")
+        password_label = QLabel("Result")
         password_label.setObjectName("fieldLabel")
 
         self.password_entry = QLineEdit()
         self.password_entry.setReadOnly(True)
-        self.password_entry.setPlaceholderText("Genera una contraseña para verla aquí.")
+        self.password_entry.setPlaceholderText("Generate a password to see it here.")
         self.password_entry.setEchoMode(QLineEdit.EchoMode.Password)
         self.password_entry.setMinimumHeight(46)
 
@@ -206,10 +214,10 @@ class MainWindow(QMainWindow):
         password_actions = QHBoxLayout()
         password_actions.setSpacing(10)
 
-        self.show_checkbox = QCheckBox("Mostrar")
+        self.show_checkbox = QCheckBox("Show")
         self.show_checkbox.toggled.connect(self.toggle_password_visibility)
 
-        self.copy_button = QPushButton("Copiar contraseña")
+        self.copy_button = QPushButton("Copy password")
         self.copy_button.setObjectName("secondaryButton")
         self.copy_button.setMinimumHeight(40)
         self.copy_button.setEnabled(False)
@@ -228,12 +236,12 @@ class MainWindow(QMainWindow):
         security_layout = QVBoxLayout(security_frame)
         security_layout.setContentsMargins(12, 10, 12, 10)
 
-        security_title = QLabel("Protección local")
+        security_title = QLabel("Local protection")
         security_title.setObjectName("securityTitle")
 
         security_text = QLabel(
-            "La clave de perfil permanece en el almacén seguro del sistema. "
-            "La contraseña se mantiene en memoria y se oculta por defecto."
+            "The profile key stays in the operating system's secure credential store. "
+            "The generated password is kept in memory and hidden by default."
         )
         security_text.setObjectName("securityText")
         security_text.setWordWrap(True)
@@ -253,7 +261,7 @@ class MainWindow(QMainWindow):
         separator.setObjectName("separator")
         outer.addWidget(separator)
 
-        self.status_label = QLabel("●  Listo")
+        self.status_label = QLabel("●  Ready")
         self.status_label.setObjectName("status")
         outer.addWidget(self.status_label)
 
@@ -270,12 +278,10 @@ class MainWindow(QMainWindow):
                 color: #e8edf2;
             }
 
-            QLabel#brandMark {
-                background: #2f6fed;
-                color: #ffffff;
-                border-radius: 12px;
-                font-size: 23px;
-                font-weight: 800;
+            QLabel#brandLogo {
+                background: #0d1320;
+                border: 1px solid #29384f;
+                border-radius: 16px;
             }
 
             QLabel#title {
@@ -451,7 +457,7 @@ class MainWindow(QMainWindow):
         try:
             devices = self.capture.list_devices()
         except MidiInputError as exc:
-            self._set_status(f"●  No se pudieron leer los dispositivos MIDI: {exc}")
+            self._set_status(f"●  Unable to read MIDI devices: {exc}")
             return
 
         current_device = self.device_combo.currentText()
@@ -462,36 +468,36 @@ class MainWindow(QMainWindow):
             self.device_combo.setCurrentText(current_device)
 
         if devices:
-            self._set_status(f"●  {len(devices)} dispositivo(s) MIDI disponible(s).")
+            self._set_status(f"●  {len(devices)} MIDI device(s) available.")
         else:
-            self._set_status("●  No se detectó un dispositivo MIDI.")
+            self._set_status("●  No MIDI device detected.")
 
     def toggle_capture(self) -> None:
         if self.capture.is_running:
             self.capture.stop()
-            self.record_button.setText("Iniciar captura")
-            self._set_status("●  Captura detenida.")
+            self.record_button.setText("Start capture")
+            self._set_status("●  Capture stopped.")
             return
 
         device = self.device_combo.currentText().strip()
         if not device:
-            QMessageBox.warning(self, "MIDI", "Selecciona un dispositivo MIDI.")
+            QMessageBox.warning(self, "MIDI", "Select a MIDI device.")
             return
 
         try:
             self.capture.start(device)
-            self.record_button.setText("Detener captura")
-            self._set_status("●  Capturando notas…")
+            self.record_button.setText("Stop capture")
+            self._set_status("●  Capturing notes…")
         except MidiInputError as exc:
             QMessageBox.critical(self, "MIDI", str(exc))
-            self._set_status("●  Error de captura.")
+            self._set_status("●  Capture error.")
 
     def clear_sequence(self) -> None:
         self.capture.clear()
         self._last_sequence = ()
         self._clear_password()
         self._refresh_sequence()
-        self._set_status("●  Secuencia limpiada.")
+        self._set_status("●  Sequence cleared.")
 
     def generate_password(self) -> None:
         try:
@@ -500,9 +506,9 @@ class MainWindow(QMainWindow):
 
             self.password_entry.setText(password)
             self.copy_button.setEnabled(True)
-            self._set_status("●  Contraseña generada y mantenida solo en memoria.")
+            self._set_status("●  Password generated and kept only in memory.")
         except (ValueError, SecretStoreError) as exc:
-            QMessageBox.warning(self, "No se pudo generar", str(exc))
+            QMessageBox.warning(self, "Generation failed", str(exc))
 
     def toggle_password_visibility(self, visible: bool) -> None:
         mode = QLineEdit.EchoMode.Normal if visible else QLineEdit.EchoMode.Password
@@ -514,7 +520,7 @@ class MainWindow(QMainWindow):
             return
 
         QApplication.clipboard().setText(value)
-        self._set_status("●  Contraseña copiada al portapapeles. Límpialo al terminar.")
+        self._set_status("●  Password copied to clipboard. Clear it when finished.")
 
     def _refresh_sequence(self) -> None:
         sequence = self.capture.sequence
@@ -525,11 +531,11 @@ class MainWindow(QMainWindow):
         names = sequence.display_names()
         self.sequence_display.setText("  →  ".join(names[-24:]) if names else "")
         suffix = "…" if len(names) > 24 else ""
-        self.count_label.setText(f"{len(names)} notas{suffix}")
+        self.count_label.setText(f"{len(names)} notes{suffix}")
 
         if self.password_entry.text():
             self._clear_password()
-            self._set_status("●  La secuencia cambió; genera una nueva contraseña.")
+            self._set_status("●  Sequence changed; generate a new password.")
 
     def _clear_password(self) -> None:
         self.password_entry.clear()
