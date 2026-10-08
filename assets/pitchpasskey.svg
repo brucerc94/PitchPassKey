@@ -1,0 +1,69 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="70" y1="40" x2="450" y2="472" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0D1725"/>
+      <stop offset="1" stop-color="#11131F"/>
+    </linearGradient>
+    <linearGradient id="rim" x1="70" y1="80" x2="442" y2="430" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#45D6FF"/>
+      <stop offset="0.52" stop-color="#3E7BFF"/>
+      <stop offset="1" stop-color="#A85BFF"/>
+    </linearGradient>
+    <linearGradient id="metal" x1="164" y1="146" x2="360" y2="350" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#EFF6FF"/>
+      <stop offset="0.45" stop-color="#A7B6C9"/>
+      <stop offset="1" stop-color="#56677C"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="238" y1="248" x2="285" y2="315" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFF4B0"/>
+      <stop offset="0.45" stop-color="#FFD34D"/>
+      <stop offset="1" stop-color="#E79C24"/>
+    </linearGradient>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="16" stdDeviation="18" flood-color="#02060D" flood-opacity="0.55"/>
+    </filter>
+  </defs>
+
+  <rect x="24" y="24" width="464" height="464" rx="92" fill="url(#bg)"/>
+  <rect x="38" y="38" width="436" height="436" rx="80" stroke="url(#rim)" stroke-width="8"/>
+
+  <g opacity="0.72" stroke="url(#rim)" stroke-width="5" stroke-linecap="round">
+    <path d="M78 210C150 145 222 145 294 210"/>
+    <path d="M65 241C150 166 234 170 318 245"/>
+    <path d="M205 388C285 320 365 316 443 360"/>
+    <path d="M195 414C284 339 377 338 453 386"/>
+  </g>
+
+  <g filter="url(#shadow)">
+    <path d="M179 224V171C179 112 226 76 284 76C342 76 389 112 389 171V224H353V174C353 134 324 110 284 110C244 110 215 134 215 174V224H179Z" fill="url(#metal)"/>
+    <rect x="136" y="190" width="296" height="204" rx="44" fill="url(#metal)"/>
+    <rect x="150" y="204" width="268" height="176" rx="32" fill="#202B38"/>
+    <circle cx="284" cy="288" r="45" fill="#0B1017" stroke="#8C9BAD" stroke-width="4"/>
+    <path d="M272 288C272 277 280 268 291 268C302 268 310 277 310 288C310 296 305 303 299 307V329H283V307C276 304 272 297 272 288Z" fill="url(#gold)"/>
+  </g>
+
+  <g transform="translate(94 320)" filter="url(#shadow)">
+    <rect x="0" y="0" width="365" height="102" rx="22" fill="#11161E" stroke="#6D7E93" stroke-width="3"/>
+    <g fill="#F4F7FB">
+      <rect x="12" y="10" width="46" height="76" rx="5"/>
+      <rect x="63" y="10" width="46" height="76" rx="5"/>
+      <rect x="114" y="10" width="46" height="76" rx="5"/>
+      <rect x="165" y="10" width="46" height="76" rx="5"/>
+      <rect x="216" y="10" width="46" height="76" rx="5"/>
+      <rect x="267" y="10" width="46" height="76" rx="5"/>
+      <rect x="318" y="10" width="35" height="76" rx="5"/>
+    </g>
+    <g fill="#131A23">
+      <rect x="43" y="6" width="29" height="47" rx="5"/>
+      <rect x="94" y="6" width="29" height="47" rx="5"/>
+      <rect x="196" y="6" width="29" height="47" rx="5"/>
+      <rect x="247" y="6" width="29" height="47" rx="5"/>
+      <rect x="298" y="6" width="29" height="47" rx="5"/>
+    </g>
+  </g>
+
+  <g fill="url(#rim)">
+    <path d="M105 139C105 123 117 111 133 111C149 111 161 123 161 139V166C145 166 132 154 132 138V133C132 130 130 128 127 128C124 128 122 130 122 133V139C122 151 113 161 105 165V139Z"/>
+    <path d="M398 145C398 129 410 117 426 117C442 117 454 129 454 145V177C438 177 425 165 425 149V143C425 140 423 138 420 138C417 138 415 140 415 143V149C415 161 406 171 398 175V145Z"/>
+  </g>
+</svg>
