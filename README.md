@@ -115,7 +115,6 @@ The domain does not import Qt, MIDI libraries, audio libraries, or OS-specific s
 - keyring
 - HMAC-SHA-256
 - pytest
-- Ruff
 
 ## Installation
 
@@ -171,13 +170,6 @@ Run tests:
 
 ```bash
 python -m pytest
-```
-
-Run linting and formatting checks:
-
-```bash
-ruff check .
-ruff format --check .
 ```
 
 ## Future integration
