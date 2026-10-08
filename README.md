@@ -5,12 +5,13 @@ Local Python desktop app that derives password output from an ordered sequence o
 ## Design
 
 - Clean Architecture and SOLID boundaries.
-- Domain knows nothing about MIDI, audio, UI, or the OS.
+- Domain knows nothing about MIDI, audio, UI, or the operating system.
 - Current input: MIDI controller.
 - Future input: audio transcription through the same `NoteInputSource` boundary.
 - Only note number and order matter. Velocity, timing, duration, sustain, and other performance data are ignored.
 - Per-profile secret is stored using the operating system keyring.
 - Password output is masked by default in the UI.
+- Desktop UI uses PySide6 / Qt 6.
 
 ```
 MIDI Controller -> NoteInputSource -> NoteSequence -> PasswordService
@@ -30,6 +31,10 @@ Avoid predictable public melodies for high-value secrets. For critical accounts,
 
 Python 3.10+.
 
+On Windows, the recommended path is to run `run.bat`. It creates or reuses `.venv`, installs the project dependencies, checks the runtime imports, and starts PitchPassKey.
+
+Manual setup:
+
 ```bash
 python -m venv .venv
 .venv\\Scripts\\activate
@@ -43,6 +48,8 @@ Development checks:
 
 ```bash
 python -m pytest
+ruff check .
+ruff format --check .
 ```
 
 ## Future audio integration
