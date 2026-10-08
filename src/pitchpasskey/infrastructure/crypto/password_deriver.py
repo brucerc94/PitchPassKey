@@ -3,7 +3,6 @@ from __future__ import annotations
 import hashlib
 import hmac
 import string
-import unicodedata
 from typing import Protocol
 
 from pitchpasskey.domain.models import NoteSequence
@@ -31,20 +30,12 @@ class PasswordDeriver(PasswordDerivationPort):
         self._secret_provider = secret_provider
         self._profile = profile
 
-    def derive(self, sequence: NoteSequence, context: str, length: int) -> str:
+    def derive(self, sequence: NoteSequence, length: int) -> str:
         if length < 12:
             raise ValueError("generated passwords must be at least 12 characters")
 
         secret = self._secret_provider.get_or_create(self._profile)
-        normalized_context = unicodedata.normalize("NFC", context)
-        context_bytes = normalized_context.encode("utf-8")
-
-        payload = (
-            self._VERSION
-            + len(context_bytes).to_bytes(2, "big")
-            + context_bytes
-            + sequence.canonical_bytes()
-        )
+        payload = self._VERSION + sequence.canonical_bytes()
         seed = hmac.new(secret, payload, hashlib.sha256).digest()
 
         chunks = [
