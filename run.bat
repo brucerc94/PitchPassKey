@@ -39,24 +39,24 @@ if not defined PYTHON_CMD (
     exit /b 1
 )
 
-echo [OK] Python compatible encontrado.
+echo [OK] Compatible Python found.
 
 REM ------------------------------------------------------------
 REM 2. Create the virtual environment when it does not exist.
 REM ------------------------------------------------------------
 if not exist ".venv\Scripts\python.exe" (
-    echo [INFO] Creando entorno virtual .venv...
+    echo [INFO] Creating virtual environment .venv...
     %PYTHON_CMD% -m venv .venv
     if errorlevel 1 (
         echo.
-        echo [ERROR] No se pudo crear el entorno virtual.
+        echo [ERROR] Unable to create the virtual environment.
         echo.
         pause
         exit /b 1
     )
-    echo [OK] Entorno virtual creado.
+    echo [OK] Virtual environment created.
 ) else (
-    echo [OK] Entorno virtual existente.
+    echo [OK] Virtual environment already exists.
 )
 
 set "VENV_PYTHON=%CD%\.venv\Scripts\python.exe"
@@ -82,39 +82,39 @@ if "%NEEDS_INSTALL%"=="1" (
     "%VENV_PYTHON%" -m pip install -e .
     if errorlevel 1 (
         echo.
-        echo [ERROR] No se pudieron instalar las dependencias de PitchPassKey.
+        echo [ERROR] Unable to install PitchPassKey dependencies.
         echo.
         pause
         exit /b 1
     )
     >"%READY_FILE%" echo ready
-    echo [OK] Dependencias instaladas.
+    echo [OK] Dependencies installed.
 ) else (
-    echo [OK] Dependencias ya instaladas.
+    echo [OK] Dependencies already installed.
 )
 
 REM ------------------------------------------------------------
 REM 4. Verify critical runtime imports before starting.
 REM ------------------------------------------------------------
 echo.
-echo [INFO] Verificando componentes principales...
+echo [INFO] Verifying core components...
 "%VENV_PYTHON%" -c "import pitchpasskey.app, mido, keyring, rtmidi"
 if errorlevel 1 (
     echo.
-    echo [ERROR] La instalacion no esta completa.
-    echo [INFO] Ejecuta "run.bat --repair" para repararla.
+    echo [ERROR] The installation is incomplete.
+    echo [INFO] Run "run.bat --repair" to repair it.
     echo.
     pause
     exit /b 1
 )
 
-echo [OK] Dependencias verificadas.
+echo [OK] Dependencies verified.
 
 REM ------------------------------------------------------------
 REM 5. Start PitchPassKey with the virtual environment Python.
 REM ------------------------------------------------------------
 echo.
-echo [INFO] Iniciando PitchPassKey...
+echo [INFO] Starting PitchPassKey...
 echo.
 
 "%VENV_PYTHON%" -m pitchpasskey
@@ -122,12 +122,12 @@ set "APP_EXIT_CODE=%errorlevel%"
 
 echo.
 if not "%APP_EXIT_CODE%"=="0" (
-    echo [ERROR] PitchPassKey termino con codigo %APP_EXIT_CODE%.
+    echo [ERROR] PitchPassKey exited with code %APP_EXIT_CODE%.
     echo.
     pause
     exit /b %APP_EXIT_CODE%
 )
 
-echo [OK] PitchPassKey finalizado correctamente.
+echo [OK] PitchPassKey finished successfully.
 endlocal
 exit /b 0
