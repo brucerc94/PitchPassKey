@@ -23,7 +23,6 @@ class PasswordService:
     def generate(
         self,
         sequence: NoteSequence,
-        context: str = "",
         length: int | None = None,
     ) -> str:
         sequence_length = len(sequence)
@@ -33,16 +32,8 @@ class PasswordService:
                 f"{self._policy.max_sequence_length} notes"
             )
 
-        normalized_context = context.strip()
-        if len(normalized_context) > self._policy.max_context_length:
-            raise ValueError("context is too long")
-
         output_length = length if length is not None else self._policy.length
         if not 12 <= output_length <= 128:
             raise ValueError("password length must be between 12 and 128")
 
-        return self._deriver.derive(
-            sequence=sequence,
-            context=normalized_context,
-            length=output_length,
-        )
+        return self._deriver.derive(sequence=sequence, length=output_length)
