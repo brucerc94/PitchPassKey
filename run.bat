@@ -72,7 +72,7 @@ if /I "%~1"=="--repair" set "NEEDS_INSTALL=1"
 if not exist "%READY_FILE%" set "NEEDS_INSTALL=1"
 
 if "%NEEDS_INSTALL%"=="0" (
-    "%VENV_PYTHON%" -c "import PySide6, mido, keyring, rtmidi, pitchpasskey" >nul 2>&1
+    "%VENV_PYTHON%" -c "import pitchpasskey.app, mido, keyring, rtmidi" >nul 2>&1
     if errorlevel 1 set "NEEDS_INSTALL=1"
 )
 
@@ -98,7 +98,7 @@ REM 4. Verify critical runtime imports before starting.
 REM ------------------------------------------------------------
 echo.
 echo [INFO] Verificando componentes principales...
-"%VENV_PYTHON%" -c "from PySide6 import QtWidgets; import mido, keyring, rtmidi, pitchpasskey"
+"%VENV_PYTHON%" -c "import pitchpasskey.app, mido, keyring, rtmidi"
 if errorlevel 1 (
     echo.
     echo [ERROR] La instalacion no esta completa.
