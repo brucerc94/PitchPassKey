@@ -79,7 +79,6 @@ if errorlevel 1 (
 
 REM ------------------------------------------------------------
 REM 4. Upgrade pip and install everything declared by pyproject.toml.
-REM    This installs or updates all runtime requirements.
 REM ------------------------------------------------------------
 echo [INFO] Actualizando pip...
 "%VENV_PYTHON%" -m pip install --upgrade pip
@@ -108,7 +107,7 @@ REM 5. Verify critical runtime imports before starting.
 REM ------------------------------------------------------------
 echo.
 echo [INFO] Verificando componentes principales...
-"%VENV_PYTHON%" -c "import tkinter, mido, keyring, rtmidi"
+"%VENV_PYTHON%" -c "from PySide6 import QtWidgets; import mido, keyring, rtmidi"
 if errorlevel 1 (
     echo.
     echo [ERROR] Falta un componente requerido para ejecutar PitchPassKey.
