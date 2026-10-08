@@ -1,0 +1,1 @@
+"""MIDI hardware adapters."""
