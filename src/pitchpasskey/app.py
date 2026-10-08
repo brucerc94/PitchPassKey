@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import sys
+from pathlib import Path
 
+from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QApplication
 
 from pitchpasskey.application.capture_sequence import SequenceCapture
@@ -26,6 +28,10 @@ def main() -> None:
     application = QApplication.instance() or QApplication(sys.argv)
     application.setApplicationName("PitchPassKey")
     application.setOrganizationName("PitchPassKey")
+
+    icon_path = Path(__file__).resolve().parents[2] / "assets" / "pitchpasskey.svg"
+    if icon_path.exists():
+        application.setWindowIcon(QIcon(str(icon_path)))
 
     window = create_window()
     window.show()
