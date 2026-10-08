@@ -8,7 +8,6 @@
 
 Capture a sequence of notes from a MIDI controller and derive a reproducible password locally, without storing the password itself.
 
-[![CI](https://github.com/brucerc94/PitchPassKey/actions/workflows/ci.yml/badge.svg)](https://github.com/brucerc94/PitchPassKey/actions/workflows/ci.yml)
 [![Python](https://img.shields.io/badge/python-3.10%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![PySide6](https://img.shields.io/badge/UI-PySide6%20%2F%20Qt%206-41CD52?logo=qt&logoColor=white)](https://doc.qt.io/qtforpython/)
 
