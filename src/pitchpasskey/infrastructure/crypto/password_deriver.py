@@ -4,17 +4,19 @@ import hashlib
 import hmac
 import string
 import unicodedata
-from collections.abc import Protocol
 
 from pitchpasskey.domain.models import NoteSequence
+from pitchpasskey.domain.ports import PasswordDerivationPort
 
 
-class SecretProvider(Protocol):
+class SecretProvider:
+    """Structural secret-store boundary used by the crypto adapter."""
+
     def get_or_create(self, profile: str) -> bytes:
-        ...
+        raise NotImplementedError
 
 
-class PasswordDeriver:
+class PasswordDeriver(PasswordDerivationPort):
     """Deterministic HMAC-SHA-256 based password derivation."""
 
     _VERSION = b"PitchPassKey/password/v1"
@@ -57,11 +59,7 @@ class PasswordDeriver:
     def _blocks(seed: bytes, domain: bytes):
         counter = 0
         while True:
-            yield hmac.new(
-                seed,
-                domain + counter.to_bytes(4, "big"),
-                hashlib.sha256,
-            ).digest()
+            yield hmac.new(seed, domain + counter.to_bytes(4, "big"), hashlib.sha256).digest()
             counter += 1
 
     def _draw(self, seed: bytes, alphabet: str, count: int, domain: bytes) -> str:
@@ -79,6 +77,8 @@ class PasswordDeriver:
                 if len(result) == count:
                     return "".join(result)
 
+        raise RuntimeError("password derivation stream ended unexpectedly")
+
     def _deterministic_shuffle(self, value: str, seed: bytes) -> str:
         items = list(value)
         stream = iter(byte for block in self._blocks(seed, b"shuffle") for byte in block)
@@ -86,10 +86,12 @@ class PasswordDeriver:
         for index in range(len(items) - 1, 0, -1):
             span = index + 1
             limit = (256 // span) * span
+
             while True:
                 candidate = next(stream)
                 if candidate < limit:
                     break
+
             swap_index = candidate % span
             items[index], items[swap_index] = items[swap_index], items[index]
 
