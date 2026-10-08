@@ -18,7 +18,7 @@ def create_app() -> MainWindow:
     password_service = PasswordService(deriver)
 
     root = tk.Tk()
-    return MainWindow(root, capture, password_service, deriver)
+    return MainWindow(root, capture, password_service)
 
 
 def main() -> None:
