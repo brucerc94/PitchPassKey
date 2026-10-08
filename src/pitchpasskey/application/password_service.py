@@ -2,13 +2,17 @@ from __future__ import annotations
 
 from pitchpasskey.domain.models import NoteSequence
 from pitchpasskey.domain.policies import PasswordPolicy
-from pitchpasskey.infrastructure.crypto.password_deriver import PasswordDeriver
+from pitchpasskey.domain.ports import PasswordDerivationPort
 
 
 class PasswordService:
     """Application use case for validated deterministic password generation."""
 
-    def __init__(self, deriver: PasswordDeriver, policy: PasswordPolicy | None = None) -> None:
+    def __init__(
+        self,
+        deriver: PasswordDerivationPort,
+        policy: PasswordPolicy | None = None,
+    ) -> None:
         self._deriver = deriver
         self._policy = policy or PasswordPolicy()
 
