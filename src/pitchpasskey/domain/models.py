@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 import struct
-from typing import Iterable, Iterator
+from collections.abc import Iterable, Iterator
+from dataclasses import dataclass
 
 
 @dataclass(frozen=True, slots=True)
@@ -31,7 +31,7 @@ class NoteSequence:
         object.__setattr__(self, "notes", normalized)
 
     @classmethod
-    def from_iterable(cls, notes: Iterable[int]) -> "NoteSequence":
+    def from_iterable(cls, notes: Iterable[int]) -> NoteSequence:
         return cls(tuple(notes))
 
     def __len__(self) -> int:
@@ -40,7 +40,7 @@ class NoteSequence:
     def __iter__(self) -> Iterator[int]:
         return iter(self.notes)
 
-    def append(self, note: int) -> "NoteSequence":
+    def append(self, note: int) -> NoteSequence:
         NoteEvent(note)
         return NoteSequence(self.notes + (note,))
 
