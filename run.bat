@@ -17,16 +17,16 @@ REM ------------------------------------------------------------
 set "PYTHON_CMD="
 
 where py >nul 2>&1
-if %errorlevel%==0 (
-    py -3.11 -c "import sys; raise SystemExit(0 if sys.version_info >= (3,11) else 1)" >nul 2>&1
-    if %errorlevel%==0 set "PYTHON_CMD=py -3.11"
+if not errorlevel 1 (
+    py -3 -c "import sys; raise SystemExit(0 if sys.version_info >= (3,11) else 1)" >nul 2>&1
+    if not errorlevel 1 set "PYTHON_CMD=py -3"
 )
 
 if not defined PYTHON_CMD (
     where python >nul 2>&1
-    if %errorlevel%==0 (
+    if not errorlevel 1 (
         python -c "import sys; raise SystemExit(0 if sys.version_info >= (3,11) else 1)" >nul 2>&1
-        if %errorlevel%==0 set "PYTHON_CMD=python"
+        if not errorlevel 1 set "PYTHON_CMD=python"
     )
 )
 
@@ -79,7 +79,7 @@ if errorlevel 1 (
 
 REM ------------------------------------------------------------
 REM 4. Upgrade pip and install everything declared by pyproject.toml.
-REM    This installs/updates mido, python-rtmidi, keyring, etc.
+REM    This installs or updates all runtime requirements.
 REM ------------------------------------------------------------
 echo [INFO] Actualizando pip...
 "%VENV_PYTHON%" -m pip install --upgrade pip
@@ -104,11 +104,11 @@ if errorlevel 1 (
 )
 
 REM ------------------------------------------------------------
-REM 5. Verify critical runtime imports before starting the app.
+REM 5. Verify critical runtime imports before starting.
 REM ------------------------------------------------------------
 echo.
 echo [INFO] Verificando componentes principales...
-"%VENV_PYTHON%" -c "import tkinter, mido, keyring; import rtmidi"
+"%VENV_PYTHON%" -c "import tkinter, mido, keyring, rtmidi"
 if errorlevel 1 (
     echo.
     echo [ERROR] Falta un componente requerido para ejecutar PitchPassKey.
@@ -121,7 +121,7 @@ if errorlevel 1 (
 echo [OK] Dependencias verificadas.
 
 REM ------------------------------------------------------------
-REM 6. Start PitchPassKey using the venv interpreter directly.
+REM 6. Start PitchPassKey with the virtual environment Python.
 REM ------------------------------------------------------------
 echo.
 echo [INFO] Iniciando PitchPassKey...
