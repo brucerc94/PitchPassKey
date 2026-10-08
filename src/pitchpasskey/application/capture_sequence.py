@@ -7,10 +7,14 @@ from pitchpasskey.domain.ports import NoteInputSource
 
 
 class SequenceCapture:
-    """Collect note events from any NoteInputSource."""
+    """Collect note events from any NoteInputSource with a bounded sequence."""
 
-    def __init__(self, source: NoteInputSource) -> None:
+    def __init__(self, source: NoteInputSource, max_length: int = 128) -> None:
+        if max_length < 1:
+            raise ValueError("max_length must be positive")
+
         self._source = source
+        self._max_length = max_length
         self._lock = Lock()
         self._sequence = NoteSequence(())
 
@@ -38,4 +42,6 @@ class SequenceCapture:
 
     def _handle_note(self, event: NoteEvent) -> None:
         with self._lock:
+            if len(self._sequence) >= self._max_length:
+                return
             self._sequence = self._sequence.append(event.midi_note)
