@@ -14,6 +14,9 @@ class SequenceCapture:
         self._lock = Lock()
         self._sequence = NoteSequence(())
 
+    def list_devices(self) -> list[str]:
+        return self._source.list_devices()
+
     @property
     def sequence(self) -> NoteSequence:
         with self._lock:
