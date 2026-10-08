@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-from PySide6.QtCore import QTimer, Qt
+from PySide6.QtCore import QTimer
 from PySide6.QtGui import QFont
 from PySide6.QtWidgets import (
+    QApplication,
     QCheckBox,
     QComboBox,
     QFormLayout,
@@ -36,9 +37,7 @@ class MainWindow(QMainWindow):
 
         self.capture = capture
         self.password_service = password_service
-
         self._last_sequence: tuple[int, ...] = ()
-        self._password_visible = False
 
         self._build()
         self.refresh_devices()
@@ -164,7 +163,7 @@ class MainWindow(QMainWindow):
         self.password_entry.setMinimumHeight(40)
 
         self.show_checkbox = QCheckBox("Mostrar")
-        self.show_checkbox.stateChanged.connect(self.toggle_password_visibility)
+        self.show_checkbox.toggled.connect(self.toggle_password_visibility)
 
         self.copy_button = QPushButton("Copiar")
         self.copy_button.setObjectName("secondaryButton")
@@ -308,8 +307,12 @@ class MainWindow(QMainWindow):
             self._set_status(f"No se pudieron leer los dispositivos MIDI: {exc}")
             return
 
+        current_device = self.device_combo.currentText()
         self.device_combo.clear()
         self.device_combo.addItems(devices)
+
+        if current_device in devices:
+            self.device_combo.setCurrentText(current_device)
 
         if devices:
             self._set_status(f"{len(devices)} dispositivo(s) MIDI disponible(s).")
@@ -340,6 +343,7 @@ class MainWindow(QMainWindow):
         self.capture.clear()
         self._last_sequence = ()
         self._clear_password()
+        self._refresh_sequence()
         self._set_status("Secuencia limpiada.")
 
     def generate_password(self) -> None:
@@ -353,9 +357,8 @@ class MainWindow(QMainWindow):
         except (ValueError, SecretStoreError) as exc:
             QMessageBox.warning(self, "No se pudo generar", str(exc))
 
-    def toggle_password_visibility(self) -> None:
-        self._password_visible = self.show_checkbox.isChecked()
-        mode = QLineEdit.EchoMode.Normal if self._password_visible else QLineEdit.EchoMode.Password
+    def toggle_password_visibility(self, visible: bool) -> None:
+        mode = QLineEdit.EchoMode.Normal if visible else QLineEdit.EchoMode.Password
         self.password_entry.setEchoMode(mode)
 
     def copy_password(self) -> None:
@@ -363,24 +366,23 @@ class MainWindow(QMainWindow):
         if not value:
             return
 
-        clipboard = self.window().windowHandle().screen().handle()
-        del clipboard
-
-        self.password_entry.selectAll()
-        self.password_entry.copy()
-        self.password_entry.deselect()
+        QApplication.clipboard().setText(value)
         self._set_status("Contraseña copiada al portapapeles. Límpialo al terminar.")
 
     def _refresh_sequence(self) -> None:
         sequence = self.capture.sequence
-        if sequence.notes != self._last_sequence:
-            self._last_sequence = sequence.notes
+        if sequence.notes == self._last_sequence:
+            return
 
-            names = sequence.display_names()
-            self.sequence_display.setText(" → ".join(names[-24:]) if names else "")
-            suffix = "…" if len(names) > 24 else ""
-            self.count_label.setText(f"{len(names)} notas{suffix}")
+        self._last_sequence = sequence.notes
+        names = sequence.display_names()
+        self.sequence_display.setText(" → ".join(names[-24:]) if names else "")
+        suffix = "…" if len(names) > 24 else ""
+        self.count_label.setText(f"{len(names)} notas{suffix}")
+
+        if self.password_entry.text():
             self._clear_password()
+            self._set_status("La secuencia cambió; genera una nueva contraseña.")
 
     def _clear_password(self) -> None:
         self.password_entry.clear()
