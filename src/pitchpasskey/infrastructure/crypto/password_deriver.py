@@ -4,16 +4,17 @@ import hashlib
 import hmac
 import string
 import unicodedata
+from typing import Protocol
 
 from pitchpasskey.domain.models import NoteSequence
 from pitchpasskey.domain.ports import PasswordDerivationPort
 
 
-class SecretProvider:
-    """Structural secret-store boundary used by the crypto adapter."""
+class SecretProvider(Protocol):
+    """Infrastructure boundary for OS-backed secret stores."""
 
     def get_or_create(self, profile: str) -> bytes:
-        raise NotImplementedError
+        ...
 
 
 class PasswordDeriver(PasswordDerivationPort):
