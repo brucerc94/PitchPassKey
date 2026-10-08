@@ -5,6 +5,7 @@ from tkinter import messagebox, ttk
 
 from pitchpasskey.application.capture_sequence import SequenceCapture
 from pitchpasskey.application.password_service import PasswordService
+from pitchpasskey.infrastructure.midi.midi_controller import MidiInputError
 from pitchpasskey.infrastructure.secrets.keyring_secret_store import SecretStoreError
 
 
@@ -149,7 +150,7 @@ class MainWindow:
     def refresh_devices(self) -> None:
         try:
             devices = self.capture.list_devices()
-        except Exception as exc:
+        except MidiInputError as exc:
             self._set_status(f"No se pudieron leer los dispositivos MIDI: {exc}")
             return
 
@@ -178,7 +179,7 @@ class MainWindow:
             self.capture.start(device)
             self.record_button.configure(text="Detener captura")
             self._set_status("Capturando…")
-        except Exception as exc:
+        except MidiInputError as exc:
             messagebox.showerror("MIDI", str(exc))
             self._set_status("Error de captura.")
 
