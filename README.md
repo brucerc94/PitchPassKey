@@ -1,57 +1,213 @@
+<div align="center">
+
+<img src="assets/pitchpasskey.svg" alt="PitchPassKey logo" width="180"/>
+
 # PitchPassKey
 
-Local Python desktop app that derives password output from an ordered sequence of notes received from a MIDI controller.
+**Music-inspired deterministic password generation for desktop**
 
-## Design
+Capture a sequence of notes from a MIDI controller and derive a reproducible password locally, without storing the password itself.
 
-- Clean Architecture and SOLID boundaries.
-- Domain knows nothing about MIDI, audio, UI, or the operating system.
-- Current input: MIDI controller.
-- Future input: audio transcription through the same `NoteInputSource` boundary.
-- Only note number and order matter. Velocity, timing, duration, sustain, and other performance data are ignored.
-- Per-profile secret is stored using the operating system keyring.
-- Password output is masked by default in the UI.
-- Desktop UI uses PySide6 / Qt 6.
+[![CI](https://github.com/brucerc94/PitchPassKey/actions/workflows/ci.yml/badge.svg)](https://github.com/brucerc94/PitchPassKey/actions/workflows/ci.yml)
+[![Python](https://img.shields.io/badge/python-3.10%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
+[![PySide6](https://img.shields.io/badge/UI-PySide6%20%2F%20Qt%206-41CD52?logo=qt&logoColor=white)](https://doc.qt.io/qtforpython/)
 
-```
-MIDI Controller -> NoteInputSource -> NoteSequence -> PasswordService
-                                      -> PasswordDeriver -> Password
-Audio Transcriber (future) ----------^
-```
+</div>
+
+## Overview
+
+PitchPassKey is a local desktop application that turns an ordered sequence of musical notes into a deterministic password.
+
+The idea is simple:
+
+`MIDI notes → canonical sequence → HMAC-SHA-256 derivation → password`
+
+The application keeps the workflow intentionally small. There is no account database, no password vault UI, and no requirement to remember a different phrase for each service.
+
+## What it does
+
+- Captures note events from a connected MIDI controller.
+- Uses the note number and the order in which notes were played.
+- Ignores velocity, timing, duration, sustain, and other performance data.
+- Derives a deterministic password from the captured sequence.
+- Uses a per-profile 32-byte secret stored through the operating system credential store.
+- Keeps the generated password masked by default.
+- Lets the user copy the generated password to the system clipboard.
+- Uses a modular architecture so future input sources, including audio-to-note transcription, can be integrated without changing the password domain.
+- Runs locally as a desktop application with a PySide6 / Qt 6 interface.
+
+## Why it is different
+
+PitchPassKey is built around a memorable musical interaction rather than a conventional password generator.
+
+The same sequence on the same profile produces the same password. A copied sequence alone does not reproduce that password on another machine or profile because the derivation also depends on the profile secret stored by the operating system.
+
+This makes PitchPassKey useful as a deterministic credential-generation experiment, while keeping the core interaction intentionally simple.
 
 ## Security model
 
-The note sequence is secret input, not a cryptographic key by itself. A per-profile 32-byte secret is generated once and stored in the OS credential store. HMAC-SHA-256 derives deterministic output from that secret and the canonical note sequence.
+The musical sequence is **not** treated as a cryptographic key by itself.
 
-This means the same sequence on the same profile reproduces the same password, while a copied sequence alone does not reproduce it on another machine. A future portable profile/key export can be added behind the secret-store interface without changing the core.
+At first use, PitchPassKey creates a random 32-byte profile secret and stores it through the operating system's credential/keyring mechanism. Password derivation then combines that secret with the canonical note sequence and derives output using HMAC-SHA-256.
 
-Avoid predictable public melodies for high-value secrets. For critical accounts, a password manager and MFA remain preferable.
+Important limitations:
 
-## Run
+- A predictable or publicly known melody should not be treated as a high-entropy secret.
+- The current application is not a replacement for a professionally audited password manager.
+- For high-value accounts, use a password manager and multi-factor authentication.
+- Clipboard contents are controlled by the operating system and may remain available until replaced or cleared.
 
-Python 3.10+.
+PitchPassKey is intended to be local-first and transparent about these trade-offs.
 
-On Windows, the recommended path is to run `run.bat`. It creates or reuses `.venv`, installs the project dependencies, checks the runtime imports, and starts PitchPassKey.
+## User interface
 
-Manual setup:
+The desktop UI is deliberately minimal:
+
+1. **Input** — select a MIDI device and capture notes.
+2. **Sequence** — review the captured notes in order.
+3. **Password** — choose the length and generate the result.
+
+The generated password is hidden by default.
+
+## Architecture
+
+PitchPassKey follows Clean Architecture and keeps framework-specific concerns at the edges.
+
+```text
+src/pitchpasskey/
+├── domain/
+│   ├── models.py
+│   ├── policies.py
+│   └── ports.py
+│
+├── application/
+│   ├── capture_sequence.py
+│   └── password_service.py
+│
+├── infrastructure/
+│   ├── audio/
+│   ├── crypto/
+│   ├── midi/
+│   └── secrets/
+│
+└── presentation/
+    └── ui.py
+```
+
+The important dependency direction is:
+
+```text
+Presentation
+     ↓
+Application
+     ↓
+Domain ← Ports ← Infrastructure
+```
+
+The domain does not import Qt, MIDI libraries, audio libraries, or OS-specific storage APIs.
+
+## Current technology
+
+- Python 3.10+
+- PySide6 / Qt 6
+- mido
+- python-rtmidi
+- keyring
+- HMAC-SHA-256
+- pytest
+- Ruff
+
+## Installation
+
+### Windows
+
+The easiest way to run PitchPassKey is:
+
+```text
+run.bat
+```
+
+On the first launch, the launcher creates `.venv` and installs the project dependencies.
+
+After that, it reuses the environment and skips the installation step unless a dependency is missing.
+
+To force a repair/reinstall:
+
+```bat
+run.bat --repair
+```
+
+### Manual setup
 
 ```bash
 python -m venv .venv
+```
+
+Windows:
+
+```bat
 .venv\\Scripts\\activate
 python -m pip install -e .
 python -m pitchpasskey
 ```
 
-Linux/macOS activation: `source .venv/bin/activate`.
+Linux/macOS:
 
-Development checks:
+```bash
+source .venv/bin/activate
+python -m pip install -e .
+python -m pitchpasskey
+```
+
+## Development
+
+Install development dependencies:
+
+```bash
+python -m pip install -e ".[dev]"
+```
+
+Run tests:
 
 ```bash
 python -m pytest
+```
+
+Run linting and formatting checks:
+
+```bash
 ruff check .
 ruff format --check .
 ```
 
-## Future audio integration
+## Future integration
 
-The audio project should only need an adapter that emits normalized `NoteEvent(midi_note=...)` objects. The domain, password engine, and UI do not need to know whether the note came from MIDI hardware or audio transcription.
+The project already exposes a stable note-input boundary for future sources.
+
+An external audio transcription system can eventually provide:
+
+```text
+Audio → NoteInputSource → NoteEvent → NoteSequence
+```
+
+The password domain and application layer do not need to know whether those notes came from a MIDI controller or an audio transcription engine.
+
+## Roadmap
+
+The project is intentionally starting small. Possible future work includes:
+
+- Audio-to-note input integration.
+- More robust hardware/device handling.
+- Application packaging for end users.
+- Automated UI testing.
+- Secure clipboard lifecycle handling.
+- Optional portable profile/key management.
+- Broader platform testing.
+
+## Project status
+
+PitchPassKey is an early-stage project under active development. The current focus is establishing a clean foundation before expanding the feature set.
+
+## License
+
+No open-source license has been selected yet. A license should be added before publishing the repository as a reusable open-source project.
