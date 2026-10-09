@@ -23,6 +23,14 @@ MIDI notes → scrypt → HMAC-SHA-256 expansion → password
 
 The same canonical sequence and the same requested output length produce the same output on supported computers. PitchPassKey does not generate or store a random per-installation secret.
 
+## License
+
+PitchPassKey is distributed under the [PolyForm Noncommercial License 1.0.0](LICENSE).
+
+You may use, modify, and redistribute this project for permitted noncommercial purposes under the license terms. Commercial use—including selling copies or incorporating the software into a commercial product or service—is not permitted without separate permission from the copyright holder. Read the full license before using the project.
+
+This is source-available software, not OSI-approved open-source software, because the license restricts commercial use. See the [Open Source Initiative's Open Source Definition](https://opensource.org/osd) for the distinction.
+
 ## Features
 
 - Capture MIDI notes in order.
@@ -161,6 +169,6 @@ python -m pytest
 
 PitchPassKey is an early-stage project. Its current design prioritizes deterministic, cross-machine output using only the notes the user remembers.
 
-## License
+## License reminder
 
-No open-source license has been selected yet. Add a license before publishing the repository as an open-source project.
+The complete license is in [LICENSE](LICENSE). A public repository does not make commercial use permissible; follow the license terms or request separate permission.
