@@ -3,39 +3,43 @@ from __future__ import annotations
 import hashlib
 import hmac
 import string
-from typing import Protocol
 
 from pitchpasskey.domain.models import NoteSequence
 from pitchpasskey.domain.ports import PasswordDerivationPort
 
 
-class SecretProvider(Protocol):
-    """Infrastructure boundary for OS-backed secret stores."""
-
-    def get_or_create(self, profile: str) -> bytes: ...
-
-
 class PasswordDeriver(PasswordDerivationPort):
-    """Deterministic HMAC-SHA-256 based password derivation."""
+    """Cross-machine deterministic password derivation from MIDI notes only."""
 
-    _VERSION = b"PitchPassKey/password/v1"
+    _VERSION = b"PitchPassKey/password/v2"
+    # This public, fixed salt is for domain separation—not a secret.
+    # It intentionally stays constant so the same sequence works on every PC.
+    _SALT = b"PitchPassKey/scrypt/v2"
+    _SCRYPT_N = 2**15
+    _SCRYPT_R = 8
+    _SCRYPT_P = 1
+    _SEED_LENGTH = 32
+
     _UPPER = string.ascii_uppercase
     _LOWER = string.ascii_lowercase
     _DIGITS = string.digits
     _SYMBOLS = "!@#$%^&*()-_=+[]{}:,.?"
     _ALPHABET = _UPPER + _LOWER + _DIGITS + _SYMBOLS
 
-    def __init__(self, secret_provider: SecretProvider, profile: str = "default") -> None:
-        self._secret_provider = secret_provider
-        self._profile = profile
-
     def derive(self, sequence: NoteSequence, length: int) -> str:
-        if length < 12:
-            raise ValueError("generated passwords must be at least 12 characters")
+        if not 12 <= length <= 128:
+            raise ValueError("generated passwords must be between 12 and 128 characters")
 
-        secret = self._secret_provider.get_or_create(self._profile)
-        payload = self._VERSION + sequence.canonical_bytes()
-        seed = hmac.new(secret, payload, hashlib.sha256).digest()
+        # No per-machine or per-installation secret is used. The canonical note
+        # sequence and fixed public parameters make the result portable.
+        seed = hashlib.scrypt(
+            password=self._VERSION + sequence.canonical_bytes(),
+            salt=self._SALT,
+            n=self._SCRYPT_N,
+            r=self._SCRYPT_R,
+            p=self._SCRYPT_P,
+            dklen=self._SEED_LENGTH,
+        )
 
         chunks = [
             self._draw(seed, self._UPPER, 1, b"upper"),
@@ -57,6 +61,7 @@ class PasswordDeriver(PasswordDerivationPort):
         if count <= 0:
             return ""
 
+        # Rejection sampling avoids modulo bias when mapping bytes to characters.
         limit = (256 // len(alphabet)) * len(alphabet)
         result: list[str] = []
 
