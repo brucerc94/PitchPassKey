@@ -24,7 +24,6 @@ from PySide6.QtWidgets import (
 from pitchpasskey.application.capture_sequence import SequenceCapture
 from pitchpasskey.application.password_service import PasswordService
 from pitchpasskey.infrastructure.midi.midi_controller import MidiInputError
-from pitchpasskey.infrastructure.secrets.keyring_secret_store import SecretStoreError
 
 
 class MainWindow(QMainWindow):
@@ -240,7 +239,7 @@ class MainWindow(QMainWindow):
         security_title.setObjectName("securityTitle")
 
         security_text = QLabel(
-            "The profile key stays in the operating system's secure credential store. "
+            "No machine-specific key or profile file is required. "
             "The generated password is kept in memory and hidden by default."
         )
         security_text.setObjectName("securityText")
@@ -507,7 +506,7 @@ class MainWindow(QMainWindow):
             self.password_entry.setText(password)
             self.copy_button.setEnabled(True)
             self._set_status("●  Password generated and kept only in memory.")
-        except (ValueError, SecretStoreError) as exc:
+        except ValueError as exc:
             QMessageBox.warning(self, "Generation failed", str(exc))
 
     def toggle_password_visibility(self, visible: bool) -> None:
