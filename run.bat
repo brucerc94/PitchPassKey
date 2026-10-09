@@ -72,7 +72,7 @@ if /I "%~1"=="--repair" set "NEEDS_INSTALL=1"
 if not exist "%READY_FILE%" set "NEEDS_INSTALL=1"
 
 if "%NEEDS_INSTALL%"=="0" (
-    "%VENV_PYTHON%" -c "import pitchpasskey.app, mido, keyring, rtmidi" >nul 2>&1
+    "%VENV_PYTHON%" -c "import pitchpasskey.app, mido, rtmidi" >nul 2>&1
     if errorlevel 1 set "NEEDS_INSTALL=1"
 )
 
