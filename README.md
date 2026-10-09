@@ -17,9 +17,9 @@ Capture notes from a MIDI controller and reproduce the same password on differen
 
 PitchPassKey is a local desktop application that turns an ordered sequence of musical notes into a deterministic password.
 
-\`\`\`text
+```text
 MIDI notes → scrypt → HMAC-SHA-256 expansion → password
-\`\`\`
+```
 
 The same canonical sequence and the same requested output length produce the same output on supported computers. PitchPassKey does not generate or store a random per-installation secret.
 
@@ -77,7 +77,7 @@ No profile import, secret file or account is required.
 
 ## Architecture
 
-\`\`\`text
+```text
 src/pitchpasskey/
 ├── domain/
 │   ├── models.py
@@ -92,14 +92,14 @@ src/pitchpasskey/
 │   └── midi/
 └── presentation/
     └── ui.py
-\`\`\`
+```
 
 ## Technology
 
 - Python 3.10+
 - PySide6 / Qt 6
 - mido and python-rtmidi
-- Python \`hashlib.scrypt\`
+- Python `hashlib.scrypt`
 - HMAC-SHA-256
 - pytest
 
@@ -109,44 +109,44 @@ src/pitchpasskey/
 
 Run:
 
-\`\`\`text
+```text
 run.bat
-\`\`\`
+```
 
-The first launch creates \`.venv\` and installs dependencies. Later launches reuse the environment. To force a repair:
+The first launch creates `.venv` and installs dependencies. Later launches reuse the environment. To force a repair:
 
-\`\`\`bat
+```bat
 run.bat --repair
-\`\`\`
+```
 
 ### Manual installation
 
-\`\`\`bash
+```bash
 python -m venv .venv
-\`\`\`
+```
 
 Windows:
 
-\`\`\`bat
+```bat
 .venv\\\\Scripts\\\\activate
 python -m pip install -e .
 python -m pitchpasskey
-\`\`\`
+```
 
 Linux/macOS:
 
-\`\`\`bash
+```bash
 source .venv/bin/activate
 python -m pip install -e .
 python -m pitchpasskey
-\`\`\`
+```
 
 ## Development
 
-\`\`\`bash
+```bash
 python -m pip install -e ".[dev]"
 python -m pytest
-\`\`\`
+```
 
 ## Roadmap
 
