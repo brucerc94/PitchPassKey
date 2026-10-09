@@ -1100,6 +1100,7 @@ class MainWindow(QMainWindow):
         self._set_status("●  Password copied to clipboard. Clear it when finished.")
 
     def _render_sequence(self, names: tuple[str, ...]) -> None:
+        # Remove current chips from the layout before scheduling them for deletion.
         while self.sequence_strip_layout.count():
             item = self.sequence_strip_layout.takeAt(0)
             widget = item.widget()
@@ -1107,11 +1108,19 @@ class MainWindow(QMainWindow):
                 widget.deleteLater()
 
         visible_names = names[-14:]
-        if len(names) > len(visible_names):
+        show_earlier = len(names) > len(visible_names)
+        chip_width = 52
+        chip_height = 32
+        chip_spacing = self.sequence_strip_layout.spacing()
+        margin_left, margin_top, margin_right, margin_bottom = (
+            self.sequence_strip_layout.getContentsMargins()
+        )
+
+        if show_earlier:
             earlier = QLabel("…")
             earlier.setObjectName("noteChip")
             earlier.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            earlier.setFixedSize(34, 32)
+            earlier.setFixedSize(34, chip_height)
             earlier.setToolTip(f"{len(names) - len(visible_names)} earlier notes")
             self.sequence_strip_layout.addWidget(earlier)
 
@@ -1121,18 +1130,35 @@ class MainWindow(QMainWindow):
                 "noteChipLatest" if index == len(visible_names) - 1 else "noteChip"
             )
             chip.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            chip.setFixedHeight(32)
-            chip.setMinimumWidth(44)
+            # Fixed width prevents Qt's layout from squeezing the labels into slivers.
+            chip.setFixedSize(chip_width, chip_height)
             self.sequence_strip_layout.addWidget(chip)
 
         if not names:
             empty = QLabel("Play a few notes to begin")
             empty.setObjectName("sequenceEmpty")
-            empty.setFixedHeight(32)
+            empty.setFixedSize(190, chip_height)
             self.sequence_strip_layout.addWidget(empty)
 
+        # Compute content width explicitly. QWidget.layout().sizeHint() may not yet
+        # have been recalculated when MIDI notes arrive rapidly.
+        chip_count = len(visible_names) + int(show_earlier)
+        if not names:
+            content_width = 190
+            chip_count = 1
+        else:
+            content_width = len(visible_names) * chip_width
+            if show_earlier:
+                content_width += 34
+            content_width += max(0, chip_count - 1) * chip_spacing
+
+        content_width += margin_left + margin_right
+        viewport_width = max(1, self.sequence_scroll.viewport().width())
+        self.sequence_strip.setFixedWidth(max(content_width, viewport_width))
+        self.sequence_strip.updateGeometry()
+
         self.sequence_strip_layout.addStretch(1)
-        self.sequence_strip.setFixedWidth(max(self.sequence_strip_layout.sizeHint().width() + 12, 160))
+
         QTimer.singleShot(
             0,
             lambda: self.sequence_scroll.horizontalScrollBar().setValue(
