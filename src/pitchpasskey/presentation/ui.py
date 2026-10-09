@@ -72,6 +72,8 @@ class PianoKeyboard(QWidget):
             self._pulse_frames = 12
             if not self._pulse_timer.isActive():
                 self._pulse_timer.start()
+        else:
+            self._visible_start = 48
 
         self.update()
 
@@ -1023,6 +1025,7 @@ class MainWindow(QMainWindow):
         worker.succeeded.connect(self._on_password_generated)
         worker.failed.connect(self._on_generation_failed)
         worker.finished.connect(self._on_generation_finished)
+        worker.finished.connect(worker.deleteLater)
         self._worker = worker
 
         self._set_pipeline_stage("idle")
