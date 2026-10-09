@@ -72,13 +72,13 @@ if /I "%~1"=="--repair" set "NEEDS_INSTALL=1"
 if not exist "%READY_FILE%" set "NEEDS_INSTALL=1"
 
 if "%NEEDS_INSTALL%"=="0" (
-    "%VENV_PYTHON%" -c "import pitchpasskey.app, mido, keyring, rtmidi" >nul 2>&1
+    "%VENV_PYTHON%" -c "import pitchpasskey.app, mido, rtmidi" >nul 2>&1
     if errorlevel 1 set "NEEDS_INSTALL=1"
 )
 
 if "%NEEDS_INSTALL%"=="1" (
     echo.
-    echo [INFO] Instalando o reparando dependencias del proyecto...
+    echo [INFO] Installing or repairing project dependencies...
     "%VENV_PYTHON%" -m pip install -e .
     if errorlevel 1 (
         echo.
@@ -98,7 +98,7 @@ REM 4. Verify critical runtime imports before starting.
 REM ------------------------------------------------------------
 echo.
 echo [INFO] Verifying core components...
-"%VENV_PYTHON%" -c "import pitchpasskey.app, mido, keyring, rtmidi"
+"%VENV_PYTHON%" -c "import pitchpasskey.app, mido, rtmidi"
 if errorlevel 1 (
     echo.
     echo [ERROR] The installation is incomplete.

@@ -7,6 +7,7 @@ from pitchpasskey.domain.models import NoteEvent, NoteSequence
 
 
 NoteCallback = Callable[[NoteEvent], None]
+DerivationProgressCallback = Callable[[str], None]
 
 
 class NoteInputSource(ABC):
@@ -30,4 +31,9 @@ class PasswordDerivationPort(ABC):
     """Application-facing boundary for deterministic password derivation."""
 
     @abstractmethod
-    def derive(self, sequence: NoteSequence, length: int) -> str: ...
+    def derive(
+        self,
+        sequence: NoteSequence,
+        length: int,
+        progress_callback: DerivationProgressCallback | None = None,
+    ) -> str: ...

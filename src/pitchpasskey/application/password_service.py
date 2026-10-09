@@ -2,7 +2,10 @@ from __future__ import annotations
 
 from pitchpasskey.domain.models import NoteSequence
 from pitchpasskey.domain.policies import PasswordPolicy
-from pitchpasskey.domain.ports import PasswordDerivationPort
+from pitchpasskey.domain.ports import (
+    DerivationProgressCallback,
+    PasswordDerivationPort,
+)
 
 
 class PasswordService:
@@ -24,6 +27,7 @@ class PasswordService:
         self,
         sequence: NoteSequence,
         length: int | None = None,
+        progress_callback: DerivationProgressCallback | None = None,
     ) -> str:
         sequence_length = len(sequence)
         if not self._policy.min_sequence_length <= sequence_length <= self._policy.max_sequence_length:
@@ -36,4 +40,11 @@ class PasswordService:
         if not 12 <= output_length <= 128:
             raise ValueError("password length must be between 12 and 128")
 
-        return self._deriver.derive(sequence=sequence, length=output_length)
+        if progress_callback is None:
+            return self._deriver.derive(sequence=sequence, length=output_length)
+
+        return self._deriver.derive(
+            sequence=sequence,
+            length=output_length,
+            progress_callback=progress_callback,
+        )

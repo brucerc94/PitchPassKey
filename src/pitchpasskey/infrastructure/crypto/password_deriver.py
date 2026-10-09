@@ -3,40 +3,61 @@ from __future__ import annotations
 import hashlib
 import hmac
 import string
-from typing import Protocol
 
 from pitchpasskey.domain.models import NoteSequence
-from pitchpasskey.domain.ports import PasswordDerivationPort
-
-
-class SecretProvider(Protocol):
-    """Infrastructure boundary for OS-backed secret stores."""
-
-    def get_or_create(self, profile: str) -> bytes: ...
+from pitchpasskey.domain.ports import (
+    DerivationProgressCallback,
+    PasswordDerivationPort,
+)
 
 
 class PasswordDeriver(PasswordDerivationPort):
-    """Deterministic HMAC-SHA-256 based password derivation."""
+    """Deterministic, cross-machine password derivation from MIDI notes only."""
 
-    _VERSION = b"PitchPassKey/password/v1"
+    _VERSION = b"PitchPassKey/password/v2"
+    # Public fixed salt: stable across installations by design.
+    # It separates this application/version; it is not a secret.
+    _SALT = b"PitchPassKey/scrypt/v2"
+    _SCRYPT_N = 2**15
+    _SCRYPT_R = 8
+    _SCRYPT_P = 1
+    _SCRYPT_MAXMEM = 64 * 1024 * 1024
+    _SEED_LENGTH = 32
+
     _UPPER = string.ascii_uppercase
     _LOWER = string.ascii_lowercase
     _DIGITS = string.digits
     _SYMBOLS = "!@#$%^&*()-_=+[]{}:,.?"
     _ALPHABET = _UPPER + _LOWER + _DIGITS + _SYMBOLS
 
-    def __init__(self, secret_provider: SecretProvider, profile: str = "default") -> None:
-        self._secret_provider = secret_provider
-        self._profile = profile
+    def derive(
+        self,
+        sequence: NoteSequence,
+        length: int,
+        progress_callback: DerivationProgressCallback | None = None,
+    ) -> str:
+        if not 12 <= length <= 128:
+            raise ValueError("generated passwords must be between 12 and 128 characters")
 
-    def derive(self, sequence: NoteSequence, length: int) -> str:
-        if length < 12:
-            raise ValueError("generated passwords must be at least 12 characters")
+        # Canonical representation contains only note number and note order.
+        # Rhythm, velocity, duration and pedal state are intentionally ignored.
+        canonical_input = self._VERSION + sequence.canonical_bytes()
+        self._notify(progress_callback, "fingerprint")
 
-        secret = self._secret_provider.get_or_create(self._profile)
-        payload = self._VERSION + sequence.canonical_bytes()
-        seed = hmac.new(secret, payload, hashlib.sha256).digest()
+        # scrypt is the real, intentionally expensive key-derivation step.
+        self._notify(progress_callback, "scrypt")
+        seed = hashlib.scrypt(
+            password=canonical_input,
+            salt=self._SALT,
+            n=self._SCRYPT_N,
+            r=self._SCRYPT_R,
+            p=self._SCRYPT_P,
+            maxmem=self._SCRYPT_MAXMEM,
+            dklen=self._SEED_LENGTH,
+        )
 
+        # Expansion and shuffling are derived from the scrypt seed using HMAC.
+        self._notify(progress_callback, "expand")
         chunks = [
             self._draw(seed, self._UPPER, 1, b"upper"),
             self._draw(seed, self._LOWER, 1, b"lower"),
@@ -44,7 +65,17 @@ class PasswordDeriver(PasswordDerivationPort):
             self._draw(seed, self._SYMBOLS, 1, b"symbols"),
             self._draw(seed, self._ALPHABET, length - 4, b"body"),
         ]
-        return self._deterministic_shuffle("".join(chunks), seed)
+        password = self._deterministic_shuffle("".join(chunks), seed)
+        self._notify(progress_callback, "complete")
+        return password
+
+    @staticmethod
+    def _notify(
+        callback: DerivationProgressCallback | None,
+        stage: str,
+    ) -> None:
+        if callback is not None:
+            callback(stage)
 
     @staticmethod
     def _blocks(seed: bytes, domain: bytes):
@@ -57,6 +88,7 @@ class PasswordDeriver(PasswordDerivationPort):
         if count <= 0:
             return ""
 
+        # Rejection sampling avoids modulo bias when mapping bytes to characters.
         limit = (256 // len(alphabet)) * len(alphabet)
         result: list[str] = []
 
