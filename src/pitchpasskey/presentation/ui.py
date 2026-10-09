@@ -993,7 +993,6 @@ class MainWindow(QMainWindow):
 
     def clear_sequence(self) -> None:
         self.capture.clear()
-        self._last_sequence = ()
         self.piano_keyboard.set_sequence(())
         self._clear_password()
         self._refresh_sequence()
@@ -1026,8 +1025,8 @@ class MainWindow(QMainWindow):
         worker.finished.connect(self._on_generation_finished)
         self._worker = worker
 
-        self._set_pipeline_stage("fingerprint")
-        self._set_status("●  Preparing the musical fingerprint…")
+        self._set_pipeline_stage("idle")
+        self._set_status("●  Starting deterministic derivation…")
         self._set_generation_controls(False)
         worker.start()
 
