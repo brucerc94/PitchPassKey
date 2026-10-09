@@ -5,7 +5,10 @@ import hmac
 import string
 
 from pitchpasskey.domain.models import NoteSequence
-from pitchpasskey.domain.ports import PasswordDerivationPort
+from pitchpasskey.domain.ports import (
+    DerivationProgressCallback,
+    PasswordDerivationPort,
+)
 
 
 class PasswordDeriver(PasswordDerivationPort):
@@ -27,14 +30,24 @@ class PasswordDeriver(PasswordDerivationPort):
     _SYMBOLS = "!@#$%^&*()-_=+[]{}:,.?"
     _ALPHABET = _UPPER + _LOWER + _DIGITS + _SYMBOLS
 
-    def derive(self, sequence: NoteSequence, length: int) -> str:
+    def derive(
+        self,
+        sequence: NoteSequence,
+        length: int,
+        progress_callback: DerivationProgressCallback | None = None,
+    ) -> str:
         if not 12 <= length <= 128:
             raise ValueError("generated passwords must be between 12 and 128 characters")
 
-        # The canonical note sequence is the only secret input.
-        # There is no machine-specific random secret or profile file.
+        # Canonical representation contains only note number and note order.
+        # Rhythm, velocity, duration and pedal state are intentionally ignored.
+        canonical_input = self._VERSION + sequence.canonical_bytes()
+        self._notify(progress_callback, "fingerprint")
+
+        # scrypt is the real, intentionally expensive key-derivation step.
+        self._notify(progress_callback, "scrypt")
         seed = hashlib.scrypt(
-            password=self._VERSION + sequence.canonical_bytes(),
+            password=canonical_input,
             salt=self._SALT,
             n=self._SCRYPT_N,
             r=self._SCRYPT_R,
@@ -43,6 +56,8 @@ class PasswordDeriver(PasswordDerivationPort):
             dklen=self._SEED_LENGTH,
         )
 
+        # Expansion and shuffling are derived from the scrypt seed using HMAC.
+        self._notify(progress_callback, "expand")
         chunks = [
             self._draw(seed, self._UPPER, 1, b"upper"),
             self._draw(seed, self._LOWER, 1, b"lower"),
@@ -50,7 +65,17 @@ class PasswordDeriver(PasswordDerivationPort):
             self._draw(seed, self._SYMBOLS, 1, b"symbols"),
             self._draw(seed, self._ALPHABET, length - 4, b"body"),
         ]
-        return self._deterministic_shuffle("".join(chunks), seed)
+        password = self._deterministic_shuffle("".join(chunks), seed)
+        self._notify(progress_callback, "complete")
+        return password
+
+    @staticmethod
+    def _notify(
+        callback: DerivationProgressCallback | None,
+        stage: str,
+    ) -> None:
+        if callback is not None:
+            callback(stage)
 
     @staticmethod
     def _blocks(seed: bytes, domain: bytes):
