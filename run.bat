@@ -98,7 +98,7 @@ REM 4. Verify critical runtime imports before starting.
 REM ------------------------------------------------------------
 echo.
 echo [INFO] Verifying core components...
-"%VENV_PYTHON%" -c "import pitchpasskey.app, mido, keyring, rtmidi"
+"%VENV_PYTHON%" -c "import pitchpasskey.app, mido, rtmidi"
 if errorlevel 1 (
     echo.
     echo [ERROR] The installation is incomplete.
