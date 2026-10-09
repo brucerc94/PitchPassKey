@@ -17,15 +17,18 @@ Capture notes from a MIDI controller and reproduce the same password on differen
 
 PitchPassKey is a local desktop application that turns an ordered sequence of musical notes into a deterministic password.
 
-```text
+\`\`\`text
 MIDI notes → scrypt → HMAC-SHA-256 expansion → password
-```
+\`\`\`
 
 The same canonical sequence and the same requested output length produce the same output on supported computers. PitchPassKey does not generate or store a random per-installation secret.
 
 ## Features
 
 - Capture MIDI notes in order.
+- See a custom piano keyboard illuminate as notes are captured.
+- Review recent notes as a scrollable visual sequence.
+- Watch the derivation pipeline report its actual stages while the UI remains responsive.
 - Use note number and note order as the secret input.
 - Ignore velocity, note duration and timing in the current version.
 - Derive passwords deterministically using scrypt and HMAC-SHA-256.
@@ -62,15 +65,19 @@ Pedal state can be added in a future version as another explicit part of the can
 
 ## User interface
 
-1. **Input** — select a MIDI device and capture notes.
-2. **Sequence** — review notes in order.
-3. **Password** — choose length, generate, reveal or copy the result.
+1. **MIDI input** — select a device and start or stop capture.
+2. **Live piano** — see the most recent note glow on the virtual keyboard.
+3. **Musical sequence** — review the captured notes in order.
+4. **Derivation engine** — follow the fingerprint, scrypt, and HMAC-SHA-256 stages.
+5. **Password output** — choose a length, generate, reveal or copy the result.
+
+The progress animation is driven by callbacks from the actual derivation steps; it does not claim that the melody is being encrypted as each note is played. The expensive derivation runs in a worker thread so the interface can remain responsive.
 
 No profile import, secret file or account is required.
 
 ## Architecture
 
-```text
+\`\`\`text
 src/pitchpasskey/
 ├── domain/
 │   ├── models.py
@@ -85,14 +92,14 @@ src/pitchpasskey/
 │   └── midi/
 └── presentation/
     └── ui.py
-```
+\`\`\`
 
 ## Technology
 
 - Python 3.10+
 - PySide6 / Qt 6
 - mido and python-rtmidi
-- Python `hashlib.scrypt`
+- Python \`hashlib.scrypt\`
 - HMAC-SHA-256
 - pytest
 
@@ -102,44 +109,44 @@ src/pitchpasskey/
 
 Run:
 
-```text
+\`\`\`text
 run.bat
-```
+\`\`\`
 
-The first launch creates `.venv` and installs dependencies. Later launches reuse the environment. To force a repair:
+The first launch creates \`.venv\` and installs dependencies. Later launches reuse the environment. To force a repair:
 
-```bat
+\`\`\`bat
 run.bat --repair
-```
+\`\`\`
 
 ### Manual installation
 
-```bash
+\`\`\`bash
 python -m venv .venv
-```
+\`\`\`
 
 Windows:
 
-```bat
-.venv\\Scripts\\activate
+\`\`\`bat
+.venv\\\\Scripts\\\\activate
 python -m pip install -e .
 python -m pitchpasskey
-```
+\`\`\`
 
 Linux/macOS:
 
-```bash
+\`\`\`bash
 source .venv/bin/activate
 python -m pip install -e .
 python -m pitchpasskey
-```
+\`\`\`
 
 ## Development
 
-```bash
+\`\`\`bash
 python -m pip install -e ".[dev]"
 python -m pytest
-```
+\`\`\`
 
 ## Roadmap
 
