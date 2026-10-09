@@ -179,3 +179,12 @@ cython_debug/
 #  refer to https://docs.cursor.com/context/ignore-files
 .cursorignore
 .cursorindexingignore
+
+# Local secrets and signing material
+.env.*
+!.env.example
+*.pem
+*.p12
+*.pfx
+*.key
+secrets/
