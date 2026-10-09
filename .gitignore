@@ -187,4 +187,4 @@ cython_debug/
 *.p12
 *.pfx
 *.key
-secrets/
+/secrets/
