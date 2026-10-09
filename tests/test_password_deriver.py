@@ -52,3 +52,11 @@ def test_invalid_length_is_rejected() -> None:
         except ValueError:
             continue
         raise AssertionError(f"Expected ValueError for length {length}")
+
+
+def test_progress_callback_reports_real_derivation_stages() -> None:
+    stages: list[str] = []
+
+    PasswordDeriver().derive(sequence(), 24, progress_callback=stages.append)
+
+    assert stages == ["fingerprint", "scrypt", "expand", "complete"]
