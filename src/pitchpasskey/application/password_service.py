@@ -40,6 +40,9 @@ class PasswordService:
         if not 12 <= output_length <= 128:
             raise ValueError("password length must be between 12 and 128")
 
+        if progress_callback is None:
+            return self._deriver.derive(sequence=sequence, length=output_length)
+
         return self._deriver.derive(
             sequence=sequence,
             length=output_length,
