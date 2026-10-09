@@ -78,7 +78,7 @@ if "%NEEDS_INSTALL%"=="0" (
 
 if "%NEEDS_INSTALL%"=="1" (
     echo.
-    echo [INFO] Instalando o reparando dependencias del proyecto...
+    echo [INFO] Installing or repairing project dependencies...
     "%VENV_PYTHON%" -m pip install -e .
     if errorlevel 1 (
         echo.
