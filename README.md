@@ -128,7 +128,7 @@ python -m venv .venv
 Windows:
 
 ```bat
-.venv\\\\Scripts\\\\activate
+.venv\Scripts\activate
 python -m pip install -e .
 python -m pitchpasskey
 ```
