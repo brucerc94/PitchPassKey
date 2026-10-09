@@ -9,15 +9,16 @@ from pitchpasskey.domain.ports import PasswordDerivationPort
 
 
 class PasswordDeriver(PasswordDerivationPort):
-    """Cross-machine deterministic password derivation from MIDI notes only."""
+    """Deterministic, cross-machine password derivation from MIDI notes only."""
 
     _VERSION = b"PitchPassKey/password/v2"
-    # This public, fixed salt is for domain separation—not a secret.
-    # It intentionally stays constant so the same sequence works on every PC.
+    # Public fixed salt: stable across installations by design.
+    # It separates this application/version; it is not a secret.
     _SALT = b"PitchPassKey/scrypt/v2"
     _SCRYPT_N = 2**15
     _SCRYPT_R = 8
     _SCRYPT_P = 1
+    _SCRYPT_MAXMEM = 64 * 1024 * 1024
     _SEED_LENGTH = 32
 
     _UPPER = string.ascii_uppercase
@@ -30,14 +31,15 @@ class PasswordDeriver(PasswordDerivationPort):
         if not 12 <= length <= 128:
             raise ValueError("generated passwords must be between 12 and 128 characters")
 
-        # No per-machine or per-installation secret is used. The canonical note
-        # sequence and fixed public parameters make the result portable.
+        # The canonical note sequence is the only secret input.
+        # There is no machine-specific random secret or profile file.
         seed = hashlib.scrypt(
             password=self._VERSION + sequence.canonical_bytes(),
             salt=self._SALT,
             n=self._SCRYPT_N,
             r=self._SCRYPT_R,
             p=self._SCRYPT_P,
+            maxmem=self._SCRYPT_MAXMEM,
             dklen=self._SEED_LENGTH,
         )
 
