@@ -5,14 +5,13 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "pitchpasskey"
 version = "0.1.0"
-description = "Local MIDI-derived password generator with Clean Architecture."
+description = "Portable MIDI-derived password generator with Clean Architecture."
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
     "PySide6>=6.11.2,<7",
     "mido>=1.3.3,<2",
     "python-rtmidi>=1.5.8,<2",
-    "keyring>=25,<26",
 ]
 
 [project.optional-dependencies]
