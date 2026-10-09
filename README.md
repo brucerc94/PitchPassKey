@@ -4,9 +4,9 @@
 
 # PitchPassKey
 
-**Music-inspired deterministic password generation for desktop**
+**Music-inspired, cross-machine deterministic password generation**
 
-Capture a sequence of notes from a MIDI controller and derive a reproducible password locally, without storing the password itself.
+Capture notes from a MIDI controller and reproduce the same password on different computers without importing a profile or storing a machine-specific key.
 
 [![Python](https://img.shields.io/badge/python-3.10%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![PySide6](https://img.shields.io/badge/UI-PySide6%20%2F%20Qt%206-41CD52?logo=qt&logoColor=white)](https://doc.qt.io/qtforpython/)
@@ -17,60 +17,58 @@ Capture a sequence of notes from a MIDI controller and derive a reproducible pas
 
 PitchPassKey is a local desktop application that turns an ordered sequence of musical notes into a deterministic password.
 
-The idea is simple:
+```text
+MIDI notes → scrypt → HMAC-SHA-256 expansion → password
+```
 
-`MIDI notes → canonical sequence → HMAC-SHA-256 derivation → password`
+The same canonical sequence and the same requested output length produce the same output on supported computers. PitchPassKey does not generate or store a random per-installation secret.
 
-The application keeps the workflow intentionally small. There is no account database, no password vault UI, and no requirement to remember a different phrase for each service.
+## Features
 
-## What it does
+- Capture MIDI notes in order.
+- Use note number and note order as the secret input.
+- Ignore velocity, note duration and timing in the current version.
+- Derive passwords deterministically using scrypt and HMAC-SHA-256.
+- Reproduce the same output across computers without profiles, account files or key synchronization.
+- Choose a password length in the UI.
+- Mask generated passwords by default and copy them to the clipboard.
+- Dark PySide6 / Qt 6 desktop interface.
+- Clean Architecture: the core is independent from the UI and MIDI device layer.
 
-- Captures note events from a connected MIDI controller.
-- Uses the note number and the order in which notes were played.
-- Ignores velocity, timing, duration, sustain, and other performance data.
-- Derives a deterministic password from the captured sequence.
-- Uses a per-profile 32-byte secret stored through the operating system credential store.
-- Keeps the generated password masked by default.
-- Lets the user copy the generated password to the system clipboard.
-- Uses a modular architecture so future input sources, including audio-to-note transcription, can be integrated without changing the password domain.
-- Runs locally as a desktop application with a PySide6 / Qt 6 interface.
+## Portability
 
-## Why it is different
+All algorithm parameters and the canonical encoding are fixed and versioned. The notes are the only secret input; no machine-specific key or local profile is required.
 
-PitchPassKey is built around a memorable musical interaction rather than a conventional password generator.
+The same notes and output length reproduce the same password on every supported computer running the same algorithm version.
 
-The same sequence on the same profile produces the same password. A copied sequence alone does not reproduce that password on another machine or profile because the derivation also depends on the profile secret stored by the operating system.
+## Security limitations
 
-This makes PitchPassKey useful as a deterministic credential-generation experiment, while keeping the core interaction intentionally simple.
+This design prioritizes portability and memorability. Because the notes are the only secret input, anyone who learns or successfully guesses the complete sequence can reproduce the password using the public algorithm.
 
-## Security model
+- Familiar songs, common scales, repeated patterns and short sequences can be guessed.
+- scrypt makes each guess more expensive, but cannot add entropy that is not present in the sequence.
+- The current version has no per-site field. Using the same notes and length produces the same password for every site.
+- Sustain pedal state, velocity and timing are not part of the current input.
+- PitchPassKey has not undergone an independent cryptographic audit and should not yet be the sole protection for high-value accounts.
+- Clipboard contents may remain available until replaced or cleared.
 
-The musical sequence is **not** treated as a cryptographic key by itself.
+For important accounts, use a password manager and multi-factor authentication until PitchPassKey has been independently reviewed.
 
-At first use, PitchPassKey creates a random 32-byte profile secret and stores it through the operating system's credential/keyring mechanism. Password derivation then combines that secret with the canonical note sequence and derives output using HMAC-SHA-256.
+## Current input format
 
-Important limitations:
+The current version uses only MIDI note number and note order. It ignores MIDI velocity, timing, duration and sustain pedal state.
 
-- A predictable or publicly known melody should not be treated as a high-entropy secret.
-- The current application is not a replacement for a professionally audited password manager.
-- For high-value accounts, use a password manager and multi-factor authentication.
-- Clipboard contents are controlled by the operating system and may remain available until replaced or cleared.
-
-PitchPassKey is intended to be local-first and transparent about these trade-offs.
+Pedal state can be added in a future version as another explicit part of the canonical input. That will require an algorithm/input-format version change, because any change to the input representation changes the generated output.
 
 ## User interface
 
-The desktop UI is deliberately minimal:
-
 1. **Input** — select a MIDI device and capture notes.
-2. **Sequence** — review the captured notes in order.
-3. **Password** — choose the length and generate the result.
+2. **Sequence** — review notes in order.
+3. **Password** — choose length, generate, reveal or copy the result.
 
-The generated password is hidden by default.
+No profile import, secret file or account is required.
 
 ## Architecture
-
-PitchPassKey follows Clean Architecture and keeps framework-specific concerns at the edges.
 
 ```text
 src/pitchpasskey/
@@ -78,40 +76,23 @@ src/pitchpasskey/
 │   ├── models.py
 │   ├── policies.py
 │   └── ports.py
-│
 ├── application/
 │   ├── capture_sequence.py
 │   └── password_service.py
-│
 ├── infrastructure/
 │   ├── audio/
 │   ├── crypto/
-│   ├── midi/
-│   └── secrets/
-│
+│   └── midi/
 └── presentation/
     └── ui.py
 ```
 
-The important dependency direction is:
-
-```text
-Presentation
-     ↓
-Application
-     ↓
-Domain ← Ports ← Infrastructure
-```
-
-The domain does not import Qt, MIDI libraries, audio libraries, or OS-specific storage APIs.
-
-## Current technology
+## Technology
 
 - Python 3.10+
 - PySide6 / Qt 6
-- mido
-- python-rtmidi
-- keyring
+- mido and python-rtmidi
+- Python `hashlib.scrypt`
 - HMAC-SHA-256
 - pytest
 
@@ -119,23 +100,19 @@ The domain does not import Qt, MIDI libraries, audio libraries, or OS-specific s
 
 ### Windows
 
-The easiest way to run PitchPassKey is:
+Run:
 
 ```text
 run.bat
 ```
 
-On the first launch, the launcher creates `.venv` and installs the project dependencies.
-
-After that, it reuses the environment and skips the installation step unless a dependency is missing.
-
-To force a repair/reinstall:
+The first launch creates `.venv` and installs dependencies. Later launches reuse the environment. To force a repair:
 
 ```bat
 run.bat --repair
 ```
 
-### Manual setup
+### Manual installation
 
 ```bash
 python -m venv .venv
@@ -159,46 +136,24 @@ python -m pitchpasskey
 
 ## Development
 
-Install development dependencies:
-
 ```bash
 python -m pip install -e ".[dev]"
-```
-
-Run tests:
-
-```bash
 python -m pytest
 ```
 
-## Future integration
-
-The project already exposes a stable note-input boundary for future sources.
-
-An external audio transcription system can eventually provide:
-
-```text
-Audio → NoteInputSource → NoteEvent → NoteSequence
-```
-
-The password domain and application layer do not need to know whether those notes came from a MIDI controller or an audio transcription engine.
-
 ## Roadmap
 
-The project is intentionally starting small. Possible future work includes:
-
-- Audio-to-note input integration.
-- More robust hardware/device handling.
-- Application packaging for end users.
-- Automated UI testing.
-- Secure clipboard lifecycle handling.
-- Optional portable profile/key management.
-- Broader platform testing.
+- Add optional sustain-pedal state as additional secret input.
+- Define test vectors for each derivation version.
+- Improve MIDI device compatibility and error handling.
+- Package desktop builds for end users.
+- Add automated UI tests.
+- Obtain independent cryptographic review.
 
 ## Project status
 
-PitchPassKey is an early-stage project under active development. The current focus is establishing a clean foundation before expanding the feature set.
+PitchPassKey is an early-stage project. Its current design prioritizes deterministic, cross-machine output using only the notes the user remembers.
 
 ## License
 
-No open-source license has been selected yet. A license should be added before publishing the repository as a reusable open-source project.
+No open-source license has been selected yet. Add a license before publishing the repository as an open-source project.
